@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "sticky-note",
+  "name": "Sticky Note",
+  "version": "1.0.0",
+  "author": "Jon Meisburg",
+  "description": "A single persistent sticky note on the desktop background layer: click to type, drag to move, corner-drag to resize. Text, position, and size survive reboots.",
+  "kinds": [
+    "service"
+  ],
+  "entryPoints": {
+    "service": "Service.qml"
+  }
+}
