@@ -1,0 +1,4 @@
+QML_IMPORT_PATH=
+*.swp
+*.swo
+.DS_Store
