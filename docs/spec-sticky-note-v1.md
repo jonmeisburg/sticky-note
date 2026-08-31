@@ -1,6 +1,6 @@
 # Spec: Sticky Note desktop widget
 **Label:** `ready-for-agent`
-**Status:** Specified via grilling session 2026-08-31
+**Status:** Specified via grilling session 2026-08-31; **amended 2026-08-31** (see bottom: "Amendment — the note becomes a real window")
 
 ## Problem Statement
 
@@ -105,3 +105,50 @@ Shipped as an Omarchy plugin (QML/quickshell), the native extension mechanism of
 **Primary risk (restated for the implementer):** focus handoff on a background-layer surface — taking keyboard focus on click, releasing on click-away/Escape, and never taking it unprompted. Treat as the riskiest component; the state machine exists so its *logic* is testable even though the focus plumbing is verified manually.
 
 **Context for the implementer:** this spec came out of a structured grilling session; each behavioral rule above was discussed and explicitly chosen (including resizing and move-by-drag being promoted into v1 after the user described their real arrange-then-stretch workflow). Don't "simplify away" the drag/click threshold or the click-away commit — they are load-bearing design decisions, not incidental details.
+---
+
+## Amendment — the note becomes a real window (2026-08-31, same day, after live use)
+
+The original layering decision ("desktop background layer, always behind
+normal windows") was tested against the real workflow it was written for
+and failed it: the user runs **tiled windows most of the time**, so
+"behind all windows" meant "invisible and unclickable" — the note could
+not be seen or used exactly when it was needed. The user chose, with the
+trade-offs stated explicitly, to make the note **a real, compositor-managed
+window** that participates in their Hyprland tiling layout.
+
+**Superseded user stories:** 3 (behind windows), 4 (never in the focus
+model — a real window is focused, alt-tabbed, and tiled like any other),
+13 (exact place is not restored; the compositor places each session's
+window, the note's *size* is what persists), 14–19 (arrange/resize are
+native Hyprland float/move/resize, not custom gestures — the readability
+size floor survives as a native `minimumSize`), 32 (no custom corner
+affordance; native resize edges serve it), 34 (the compositor owns
+placement, so on-screen stranding is no longer our failure mode).
+
+**Implementation Decisions replaced:**
+
+- *Module shape* — the interaction state machine (seam 2) is **dissolved**.
+  Its remaining decisions became native semantics: editing begins when the
+  text area takes active focus (click), commits on focus loss (click-away,
+  workspace switch) or Escape. The state model (seam 1) is unchanged and
+  remains the highest seam.
+- *Layering and focus* — replaced wholesale: a quickshell `FloatingWindow`
+  titled "Sticky Note". The build's primary flagged risk (background-layer
+  keyboard focus) is deleted along with its surface.
+- *Persistence* — text unchanged. Geometry is now **observed, never
+  driven**: the window is sized once at spawn from the document, then the
+  compositor owns it and size changes are recorded back (debounced) so the
+  note's last size survives reboots. Position in the document records what
+  loads/edits produced; the compositor's placement is per-session.
+- *Gesture thresholds* — obsolete; movement and resizing are compositor
+  operations.
+
+**Testing Decisions updated:** seam 1 (state model) tests unchanged. Seam
+2 tests are deleted with the machine; the commit behavior they covered is
+now one binding each (`onActiveFocusChanged`, `Keys.onEscapePressed`).
+The corrupt-file fallback, autosave debouncing, external-edit following,
+and geometry round-trip all remain under seam 1's tests.
+
+The original spec text above is kept as the record of what was grilled and
+why; where it contradicts this amendment, the amendment wins.

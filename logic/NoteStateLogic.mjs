@@ -14,13 +14,11 @@ export const DEFAULT_Y = 16
 export const DEFAULT_WIDTH = 300
 export const DEFAULT_HEIGHT = 300
 
-// Below this the note is an unreadable sliver (spec user story 19).
+// Below this the note is an unreadable sliver (spec user story 19). The
+// window enforces it as a native minimumSize; load-time clamping uses it
+// too, so a hand-edited document can't restore a sliver.
 export const MIN_WIDTH = 140
 export const MIN_HEIGHT = 140
-
-// A drag must never strand the note: at least this much of it stays
-// reachable on each axis (spec user story 34).
-export const MIN_VISIBLE_PX = 60
 
 export function defaults() {
   return {
@@ -69,9 +67,10 @@ function knownScreen(screenW, screenH) {
   return isFiniteNumber(screenW) && isFiniteNumber(screenH) && screenW > 0 && screenH > 0
 }
 
-// Load-time recovery (spec user story 34, ticket 05): whatever was saved,
-// the note must land fully on-screen and at least as large as the size
-// floor. A monitor change or hand-edited absurd value can never strand it.
+// Load-time recovery (spec user story 34): whatever was saved, the restored
+// size must be sane on this screen. Placement itself is compositor-owned
+// (the note is a real window), so this protects only what the document
+// feeds back at spawn — the window's size.
 export function clampToScreen(state, screenW, screenH) {
   if (!knownScreen(screenW, screenH)) return state
   var width = Math.min(Math.max(Math.round(state.width), MIN_WIDTH), Math.round(screenW))
@@ -79,31 +78,6 @@ export function clampToScreen(state, screenW, screenH) {
   var x = Math.min(Math.max(Math.round(state.x), 0), Math.round(screenW) - width)
   var y = Math.min(Math.max(Math.round(state.y), 0), Math.round(screenH) - height)
   return { text: state.text, x: x, y: y, width: width, height: height }
-}
-
-// While dragging, the note may hang off any edge, but MIN_VISIBLE_PX of it
-// must stay reachable so the user can always grab it again.
-export function clampDragPosition(x, y, w, h, screenW, screenH) {
-  if (!knownScreen(screenW, screenH)) return { x: Math.round(x), y: Math.round(y) }
-  var minX = -(w - MIN_VISIBLE_PX)
-  var maxX = screenW - MIN_VISIBLE_PX
-  var minY = -(h - MIN_VISIBLE_PX)
-  var maxY = screenH - MIN_VISIBLE_PX
-  return {
-    x: Math.round(Math.min(Math.max(x, minX), maxX)),
-    y: Math.round(Math.min(Math.max(y, minY), maxY)),
-  }
-}
-
-// Corner-drag resize: floor at the readable minimum, cap at the screen.
-export function clampResize(width, height, screenW, screenH) {
-  var w = Math.max(Math.round(width), MIN_WIDTH)
-  var h = Math.max(Math.round(height), MIN_HEIGHT)
-  if (knownScreen(screenW, screenH)) {
-    w = Math.min(w, Math.round(screenW))
-    h = Math.min(h, Math.round(screenH))
-  }
-  return { width: w, height: h }
 }
 
 export function serializeState(state) {

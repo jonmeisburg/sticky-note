@@ -1,14 +1,11 @@
 # 03: Move by drag
 
-**What to build:** The note can be arranged: pressing on the note's body and moving it drags the note to any desktop position, while a clean press (movement below the threshold) still begins editing as ticket 02 defined. Movement clears a small pixel threshold before a drag begins, so aimed edit-clicks never shift the note. The new position persists, and dragging keeps the note reachable — the note cannot be dragged fully off-screen.
+**What to build:** Nothing to build — superseded by the 2026-08-31 spec amendment. The note is a real window, so moving it is native Hyprland behavior: float it (the user's float bind), drag it with SUPER+drag or the mouse, or let the tiling engine place it. There is no custom drag gesture, no click-vs-drag threshold, and no drag clamp to keep the note reachable — the compositor already guarantees a window can be moved and found.
 
-**Blocked by:** 02 (Editing + autosave).
+**What remains to verify:**
 
-**Status:** ready-for-agent
+- [ ] Floating the note and moving it works with the user's native binds.
+- [ ] Moving the note (float or tile swap) never disturbs its text or triggers a spurious save of anything but geometry.
+- [ ] A moved note keeps working: clicking into it still edits, autosave still fires.
 
-- [ ] Press-and-move on the note body drags the note; release leaves it at the new position.
-- [ ] A press with movement below the click threshold is still an edit-click, not a drag (threshold behavior from the spec, tunable in one place).
-- [ ] The note cannot be dragged with both it and its interactive areas entirely off-screen (the gesture clamp keeps at least a sensible part of the note reachable).
-- [ ] The note's position persists across reboot.
-- [ ] Gesture-classifier tests pass: sub-threshold movement classifies as click; body movement classifies as move.
-- [ ] Position-clamp logic is verified as pure logic (no rendering involved).
+**Position persistence note:** placement is compositor-owned and per-session; the state document records x/y only as loaded/hand-edited values and does not chase live window position. If the user later wants last-float-position restored at spawn, that is a new, explicitly-specced ticket.

@@ -87,29 +87,3 @@ test("clampToScreen: unknown screen dimensions leave the state untouched", () =>
   assert.deepEqual(State.clampToScreen(state, 0, 0), state)
   assert.deepEqual(State.clampToScreen(state, null, null), state)
 })
-
-test("clampDragPosition: a note can never be dragged out of reach", () => {
-  // Dragged far past the left edge: MIN_VISIBLE_PX of it remains visible.
-  const left = State.clampDragPosition(-1000, 500, 300, 300, 1920, 1080)
-  assert.equal(left.x, -(300 - State.MIN_VISIBLE_PX))
-  assert.equal(left.y, 500)
-  // Same on the right and bottom.
-  const right = State.clampDragPosition(5000, 500, 300, 300, 1920, 1080)
-  assert.equal(right.x, 1920 - State.MIN_VISIBLE_PX)
-  const bottom = State.clampDragPosition(100, 5000, 300, 300, 1920, 1080)
-  assert.equal(bottom.y, 1080 - State.MIN_VISIBLE_PX)
-  // A drag that keeps the note fully on-screen is untouched.
-  const fine = State.clampDragPosition(400, 400, 300, 300, 1920, 1080)
-  assert.deepEqual(fine, { x: 400, y: 400 })
-})
-
-test("clampDragPosition: unknown screen dimensions leave the drag position alone", () => {
-  assert.deepEqual(State.clampDragPosition(-1000, 500, 300, 300, 0, 0), { x: -1000, y: 500 })
-})
-
-test("clampResize: never below the minimum size, never larger than the screen", () => {
-  assert.deepEqual(State.clampResize(20, 20, 1920, 1080), { width: State.MIN_WIDTH, height: State.MIN_HEIGHT })
-  assert.deepEqual(State.clampResize(5000, 5000, 1920, 1080), { width: 1920, height: 1080 })
-  assert.deepEqual(State.clampResize(500, 800, 1920, 1080), { width: 500, height: 800 })
-  assert.deepEqual(State.clampResize(500, 800, 0, 0), { width: 500, height: 800 })
-})

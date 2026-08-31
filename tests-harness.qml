@@ -155,6 +155,19 @@ ShellRoot {
         })
       }})
 
+      enqueue({ name: "geometry changes ride the same debounced autosave", run: function() {
+        model.updateGeometry(700, 300, 500, 800)
+        wait(1200, function() {
+          sh("cat '" + statePath + "'", function(out2) {
+            var parsed = Logic.parseState(out2)
+            assertEq(parsed.ok && parsed.state.x, 700, "geometry change reached the document")
+            assertEq(parsed.ok && parsed.state.width, 500, "size change reached the document")
+            assertEq(parsed.ok && parsed.state.text, "second thought", "geometry change kept the text")
+            proceed()
+          })
+        })
+      }})
+
       enqueue({ name: "external edits to the file are followed", run: function() {
         sh("printf '%s' '" + JSON.stringify({
           text: "external edit", x: 500, y: 300, width: 350, height: 450
