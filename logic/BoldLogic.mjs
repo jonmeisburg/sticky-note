@@ -79,11 +79,36 @@ function toggleSelection(source, a0, b0) {
     };
   }
 
+  // The selection itself is a whole bold span, markers included: "**word**"
+  // grabbed end to end. Unwrap it — drop the four markers, keep the content.
+  // Guarded to an exact single span: a selection that crosses two bold
+  // words is ambiguous, so it falls through to the wrap below rather than
+  // mangle the inner markers.
+  if (isBoldSpan(source, a, b)) {
+    return {
+      text:
+        source.slice(0, a) +
+        source.slice(a + MARK.length, b - MARK.length) +
+        source.slice(b),
+      selStart: a,
+      selEnd: b - 2 * MARK.length,
+    };
+  }
+
   return {
     text: source.slice(0, a) + MARK + source.slice(a, b) + MARK + source.slice(b),
     selStart: a + MARK.length,
     selEnd: b + MARK.length,
   };
+}
+
+// True when [a, b) is exactly one bold span — a "**" pair with content
+// between the markers, nothing else.
+function isBoldSpan(source, a, b) {
+  for (const [s, e] of boldSpans(source)) {
+    if (s === a && e === b) return true;
+  }
+  return false;
 }
 
 function toggleCaret(source, c) {

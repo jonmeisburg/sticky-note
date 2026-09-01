@@ -10,7 +10,7 @@
 
 - [ ] A clean click on the note's text begins editing: text cursor appears, editing cue visible.
 - [ ] Typing lands in the note and only in the note — a real window only receives keystrokes when the compositor has focused it, same as every other window.
-- [x] Ctrl+B with a selection wraps it in bold markers; Ctrl+B again unwraps it (identity round-trip). *(live-verified: wrap `**…**` then unwrap round-trips; also the BoldLogic node suite.)*
+- [x] Ctrl+B with a selection wraps it in bold markers; Ctrl+B again unwraps it (identity round-trip). *(live-verified; a bug found in that live pass — selecting a whole bold span end-to-end, markers included, doubled the markers (`****Test me****`) instead of unwrapping — is fixed in `BoldLogic.toggleSelection` (exact-span unwrap, guarded to single spans) and covered by three new node tests.)*
 - [ ] Ctrl+B with the caret on a word toggles that word (VSCode-style); in open whitespace it inserts empty `**` markers, and pressing it again inside them removes them.
 - [ ] While editing, the raw source shows `**markers**`; when editing ends, the idle view renders bold words in bold.
 - [ ] Clicking the idle (rendered) view enters editing with the caret at the corresponding spot in the source; clicks land at the end when other markdown makes the position ambiguous.

@@ -53,6 +53,25 @@ test("unwraps a selection at the very start of the text", () => {
   assert.deepEqual(r, { text: "hello world", selStart: 0, selEnd: 5 });
 });
 
+test("unwraps a whole span selected end to end (markers included)", () => {
+  // selecting "**word**" including its markers should unbold, not double
+  const r = toggleBold("**Test me**", 0, 11);
+  assert.deepEqual(r, { text: "Test me", selStart: 0, selEnd: 7 });
+});
+
+test("unwraps a whole span selected end to end among other text", () => {
+  // span "**bold**" is [2,10); selecting it including the markers unwraps
+  const r = toggleBold("a **bold** c", 2, 10);
+  assert.deepEqual(r, { text: "a bold c", selStart: 2, selEnd: 6 });
+});
+
+test("a selection crossing two bold spans is not treated as one", () => {
+  // "**a** **b**" has spans [0,5) and [6,11); [0,11) matches neither, so
+  // the conservative behavior is to wrap, not to mangle the inner markers
+  const r = toggleBold("**a** **b**", 0, 11);
+  assert.deepEqual(r, { text: "****a** **b****", selStart: 2, selEnd: 13 });
+});
+
 // --- toggleBold with a cursor (no selection) ------------------------------
 // A caret at position c sits between source[c-1] and source[c]: pressing
 // Ctrl+B toggles the word the caret touches (VSCode-style), and only
