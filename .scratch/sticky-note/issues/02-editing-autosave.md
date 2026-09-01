@@ -6,7 +6,7 @@
 
 **Blocked by:** 01 (The note exists).
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] A clean click on the note's text begins editing: text cursor appears, editing cue visible.
 - [x] Typing lands in the note and only in the note — a real window only receives keystrokes when the compositor has focused it, same as every other window.
@@ -19,6 +19,6 @@
 - [x] Clicking away from the note (focus moves to another window) commits editing. *(live-verified: focus loss committed + flushed the pending text.)*
 - [x] Pressing Escape commits editing and drops the cursor while the window keeps focus. *(live-verified: after Escape, further typing did not land; window stayed the active one.)*
 - [x] After a reboot, all typed text is present and in place. *(live-verified via `omarchy restart shell`: the note re-mapped on its own with its saved text intact. A full reboot is the same path — login re-launches the service, which loads the same document.)*
-- [ ] When text exceeds the visible area, the note scrolls internally (word-wrapped, no horizontal scrollbar), and the end of the text is reachable.
+- [x] When text exceeds the visible area, the note scrolls internally (word-wrapped, no horizontal scrollbar), and the end of the text is reachable. *(live-verified on the standalone dev run with 30 seeded paragraphs: wheel-scroll moved through the text, the long sentences wrapped with no horizontal scrollbar, and the final seeded line was readable at the bottom.)*
 - [x] Autosave does not lose the final keystrokes of an editing session at commit time. *(harness regression added this session: "a commit flush writes the pending tail immediately".)*
 - [x] State-model save/load round-trip tests pass (the seam-1 suite).
