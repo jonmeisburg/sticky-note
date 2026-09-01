@@ -10,15 +10,15 @@
 
 - [ ] A clean click on the note's text begins editing: text cursor appears, editing cue visible.
 - [ ] Typing lands in the note and only in the note — a real window only receives keystrokes when the compositor has focused it, same as every other window.
-- [ ] Ctrl+B with a selection wraps it in bold markers; Ctrl+B again unwraps it (identity round-trip).
+- [x] Ctrl+B with a selection wraps it in bold markers; Ctrl+B again unwraps it (identity round-trip). *(live-verified: wrap `**…**` then unwrap round-trips; also the BoldLogic node suite.)*
 - [ ] Ctrl+B with the caret on a word toggles that word (VSCode-style); in open whitespace it inserts empty `**` markers, and pressing it again inside them removes them.
 - [ ] While editing, the raw source shows `**markers**`; when editing ends, the idle view renders bold words in bold.
 - [ ] Clicking the idle (rendered) view enters editing with the caret at the corresponding spot in the source; clicks land at the end when other markdown makes the position ambiguous.
-- [ ] BoldLogic node tests pass (the bold seam suite).
-- [ ] Changing the note's text persists to the state document automatically during the edit, with no explicit save action; debounced so bursts of typing don't thrash the disk.
-- [ ] Clicking away from the note (focus moves to another window) commits editing.
-- [ ] Pressing Escape commits editing and drops the cursor while the window keeps focus.
+- [x] BoldLogic node tests pass (the bold seam suite).
+- [x] Changing the note's text persists to the state document automatically during the edit, with no explicit save action; debounced so bursts of typing don't thrash the disk. *(harness: debounced autosave writes the new text.)*
+- [x] Clicking away from the note (focus moves to another window) commits editing. *(live-verified: focus loss committed + flushed the pending text.)*
+- [x] Pressing Escape commits editing and drops the cursor while the window keeps focus. *(live-verified: after Escape, further typing did not land; window stayed the active one.)*
 - [ ] After a reboot, all typed text is present and in place.
 - [ ] When text exceeds the visible area, the note scrolls internally (word-wrapped, no horizontal scrollbar), and the end of the text is reachable.
-- [ ] Autosave does not lose the final keystrokes of an editing session at commit time.
-- [ ] State-model save/load round-trip tests pass (the seam-1 suite).
+- [x] Autosave does not lose the final keystrokes of an editing session at commit time. *(harness regression added this session: "a commit flush writes the pending tail immediately".)*
+- [x] State-model save/load round-trip tests pass (the seam-1 suite).

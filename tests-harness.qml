@@ -199,6 +199,24 @@ ShellRoot {
         })
       }})
 
+      // The commit contract (spec user story 10): when editing commits
+      // (focus loss, Escape), the pending tail of the debounce must land
+      // immediately — the last keystrokes of a session are never held
+      // for the debounce window. Flushed explicitly (saveNow), the way
+      // the view's commit binding does; the read below happens well
+      // inside the 500ms window, so only the flush could have written it.
+      enqueue({ name: "a commit flush writes the pending tail immediately", run: function() {
+        model.setText("flushed tail")
+        model.saveNow()
+        assertTruthy(!model.dirty, "the commit flush left the model clean")
+        sh("cat '" + statePath + "'", function(out2) {
+          var parsed = Logic.parseState(out2)
+          assertEq(parsed.ok && parsed.state.text, "flushed tail",
+            "the pending tail reached disk before the debounce window closed")
+          proceed()
+        })
+      }})
+
       // The startup race, as it happens live: a note is on disk, a fresh model
       // is pointed at it, and a save lands before the async file read
       // completes. Two contracts must hold at once:
