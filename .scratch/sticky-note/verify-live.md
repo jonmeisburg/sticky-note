@@ -217,6 +217,48 @@ across `omarchy restart shell` (recorded size → re-map → tiling re-shape →
 write-back, text byte-identical), and edit+autosave re-flowing word-wrap
 after a resize. Nothing to remediate.
 
+## review-05 (this ticket) — code + verify, one spec gap remediated
+
+Ticket 05 carries two seam-backing tests (a node test in
+`tests/NoteStateLogic.test.mjs` and a harness churn step in
+`tests-harness.qml`) plus the ticket closure — full findings in
+`review-05-findings.md`.
+**Standards:** clean — the new test and step mirror their neighbors'
+conventions exactly (seam-only assertions, the settle-wait discipline
+review-02 codified); the ticket's ticks follow the verify-only annotation
+form.
+**Spec:** one real gap found and remediated — the spec DoD's "week of real
+use" clause (spec:103) was missing from box-5's item-by-item walk; it is now
+recorded in the ticket as an explicitly-standing item (same-day stand-in:
+box-2's churn + restart pass; closed by the user's real use over time).
+Superseded-item handling ("sits behind windows" = superseded US 3; "never
+steals focus unprompted" per the amendment's real-window focus semantics)
+verified correct. Full suite green after remediation (39 node tests +
+harness ALL PASS).
+
+**Ticket-05 live-verification notes (learned driving this ticket):**
+- **Monitor changes go through the Lua layer too:** `hyprctl keyword
+  monitor …` fails (non-legacy parsers); use `hl.monitor({ output="DP-2",
+  mode="1920x1080@60", position="3678x0", scale=1 })` via `hyprctl eval`.
+  Supported modes come from `hyprctl monitors all`.
+- **On this machine `grim -o <mon>` captures at 1:1 logical pixels
+  (2560×1440), not physical** — but the capture content is mapped at the
+  monitor's scale (×1.667 here), so a window's crop is
+  `((at.x − mon.x) × scale, (at.y − mon.y) × scale)` with
+  `w/h × scale` — empirically confirmed by trimming the paper-yellow region.
+  §8's "physical pixels" note does not hold here; measure the capture,
+  don't assume.
+- **The wheel is `ydotool mousemove -w -x 0 -y N`** (relative; negative `-y`
+  scrolls down). Bare `click 0x…` masks do not wheel on this build.
+  The cursor drifts constantly — re-converge (§3) before any wheel test,
+  or the wheel lands on whatever window is under the drifted cursor and
+  the test silently measures nothing.
+- **Focus after `omarchy restart shell` goes to the re-mapped note** (the
+  compositor focuses the newly-mapped window; the note makes no focus
+  request of its own — verified: text-write + resize on the note while the
+  terminal is focused leaves the terminal active). Frame any re-map focus
+  as the amendment's real-window trade, not a steal.
+
 **Recipe notes (learned driving this ticket):** `hyprctl clients .at` /
 `cursorpos` are in a global logical space, but `grim -o <mon>` captures
 per-monitor **physical** pixels, and the note's monitor scales (×1.667 here).
