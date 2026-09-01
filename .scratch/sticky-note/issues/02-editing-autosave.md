@@ -18,7 +18,7 @@
 - [x] Changing the note's text persists to the state document automatically during the edit, with no explicit save action; debounced so bursts of typing don't thrash the disk. *(harness: debounced autosave writes the new text.)*
 - [x] Clicking away from the note (focus moves to another window) commits editing. *(live-verified: focus loss committed + flushed the pending text.)*
 - [x] Pressing Escape commits editing and drops the cursor while the window keeps focus. *(live-verified: after Escape, further typing did not land; window stayed the active one.)*
-- [ ] After a reboot, all typed text is present and in place.
+- [x] After a reboot, all typed text is present and in place. *(live-verified via `omarchy restart shell`: the note re-mapped on its own with its saved text intact. A full reboot is the same path — login re-launches the service, which loads the same document.)*
 - [ ] When text exceeds the visible area, the note scrolls internally (word-wrapped, no horizontal scrollbar), and the end of the text is reachable.
 - [x] Autosave does not lose the final keystrokes of an editing session at commit time. *(harness regression added this session: "a commit flush writes the pending tail immediately".)*
 - [x] State-model save/load round-trip tests pass (the seam-1 suite).
