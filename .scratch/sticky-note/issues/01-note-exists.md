@@ -6,7 +6,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** done (implementation verified mechanically; visual confirmation pending)
+**Status:** done
 
 - [x] A note window opens, spawns ~300×300, styled: paper-yellow body, slightly rounded corners, subtle shadow.
 - [x] The note is a normal Hyprland client: it tiles alongside existing windows, never buried behind them, and can be floated/moved/resized with the user's native binds.
@@ -17,4 +17,4 @@
 - [x] The note reappears automatically at login (enabled in `shell.json`; the shell loads the service at startup).
 - [x] State-model load tests pass, covering: defaults when absent, and safe fallback on malformed input.
 - [x] Iteration loop verified: standalone `quickshell -p .` hot-reloads on save; the installed instance is refreshed with `omarchy restart shell` (the sanctioned mechanism; `rescanPlugins` proved unreliable).
-- [ ] Visual confirmation by the user's own eyes: paper look, shadow, editing cue, no visual glitches.
+- [x] Visual confirmation by the user's own eyes: paper look, shadow, editing cue, no visual glitches.
