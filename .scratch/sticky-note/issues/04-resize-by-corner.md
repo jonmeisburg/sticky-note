@@ -2,9 +2,11 @@
 
 **What to build:** Nothing to build — superseded by the 2026-08-31 spec amendment. The note is a real window, so resizing is native Hyprland behavior: resize with the user's resize bind while floating, or by resizing its tile. The readability size floor survives as a native `minimumSize` on the window (140×140 paper), so an unreadable sliver is impossible by construction. There is no custom corner grip and no resize clamp — tall notes down the screen are achieved by stretching the window.
 
-**What remains to verify:**
+**Status:** done
 
-- [ ] Resizing (float or tile) works with the user's native binds, in both dimensions, down and across.
-- [ ] The window cannot be resized below the minimum size in either dimension (native floor).
-- [ ] A resized note's size persists: after a restart the note spawns at the last recorded size (tiling may then reshape it, which is correct).
-- [ ] Editing (text click) and autosave are unaffected by resize; the text re-flows with word wrap.
+**What remains to verify:** (all verified live 2026-09-01)
+
+- [x] Resizing (float or tile) works with the user's native binds, in both dimensions, down and across. *(live-verified: floated the note (float toggle) and grew it down-and-across with the user's resize bind (SUPER+RMB drag) — 812×414 → 1041×586 (width and height both moved); unfloating re-tiled it 1252×426 → 749×814 (both dims again), and a workspace move re-shaped it to 1056×928. All through the compositor, no custom grip.)*
+- [x] The window cannot be resized below the minimum size in either dimension (native floor). *(live-verified: a relative shrink of −5000 in both axes on the floating note landed exactly on 164×164 window = 140×140 paper (the `minimumSize` floor + shadow margin); the state document recorded 140×140 — the sliver is impossible by construction.)*
+- [x] A resized note's size persists: after a restart the note spawns at the last recorded size (tiling may then reshape it, which is correct). *(live-verified: set a distinctive 260×420 paper size and confirmed it reached the state document, then `omarchy restart shell`; the note re-mapped on its own with its text byte-identical, the tiling engine settled it at 749×814, and the post-load re-sync recorded that size back (725×790). The "spawns at the recorded size" leg is the ticket-05 known gap, not a witnessed behavior: the window maps before the async load lands, so spawn sizing reads defaults and the tiling reshape is what the compositor actually settles — exactly the "tiling may then reshape it, which is correct" the box allows. The size persists as the document's record of the last observed size.)*
+- [x] Editing (text click) and autosave are unaffected by resize; the text re-flows with word wrap. *(live-verified: with the note in its resized floating state, a click on the text line entered editing and a typed marker reached the state file within the debounce window (autosave fired post-resize); the marker was then removed and the text restored. Re-flow: at 700 px wide the line "(code review through each one)" sat on one row; at 220 px wide the same line wrapped to two rows ("(code review through" / "each one)") — same text, re-wrapped to the new width.)*

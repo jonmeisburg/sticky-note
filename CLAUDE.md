@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A single persistent sticky note for the user's Omarchy 4 desktop (Arch + Hyprland + quickshell), shipped as a quickshell plugin. It is a **real compositor-managed window** (a `FloatingWindow` that tiles alongside other windows) — not a desktop overlay. That was a deliberate amendment: the original background-layer design was invisible under the user's tiled workflow. The spec's amendments at the bottom of `docs/spec-sticky-note-v1.md` override anything contradictory above them; the original text is kept as design history.
 
-**Process artifacts are load-bearing.** `docs/spec-sticky-note-v1.md` holds the design and its binding decisions (seams, testing decisions, definition of done). `.scratch/sticky-note/issues/` is the ticket tracker — acceptance checkboxes there are the definition of done, ticked only by someone who demonstrated the behavior. Read both before implementing anything; work one ticket at a time; never tick a checkbox you have not verified.
+**Process artifacts are load-bearing.** `docs/spec-sticky-note-v1.md` holds the design and its binding decisions (seams, testing decisions, definition of done). `.scratch/sticky-note/issues/` is the ticket tracker — acceptance checkboxes there are the definition of done, ticked only by someone who demonstrated the behavior. Read both before implementing anything; work one ticket at a time; never tick a checkbox you have not verified. The verify-only tickets (03/04/05) are demonstrated against the live desktop, not the test suite — `.scratch/sticky-note/verify-live.md` is the recipe for driving the note through Hyprland and asserting on the state document (compositor + state-file oracles).
 
 ## Commands
 
