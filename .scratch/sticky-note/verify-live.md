@@ -61,8 +61,12 @@ if w then hl.dispatch(hl.dsp.focus({ window = w })) end
   - float/tile toggle:  `hl.dsp.window.float({ action='toggle' })`
   - tiling swap:        `hl.dsp.window.swap({ direction='l'|'r'|'u'|'d' })`
   - tiling move to ws:  `hl.dsp.window.move({ workspace='4', follow=false })`
-  - relative resize:    `hl.dsp.window.resize({ x=100, y=0, relative=true })`
-  - focus a workspace:  `hl.dsp.focus({ workspace='3' })`
+  - relative resize:  `hl.dsp.window.resize({ x=100, y=0, relative=true })`
+  - focus a workspace: `hl.dsp.focus({ workspace='3' })`
+- **`resize` without `relative=true` is an ABSOLUTE size** (window pixels):
+  `resize({ x=284, y=444 })` makes the window 284×444, it is not a delta.
+  The state document holds *paper* sizes (window − 2×12 shadow margin), so a
+  284×444 window records 260×420.
 - `print()` inside `eval` does not reach stdout (it logs to quickshell); to
   inspect a value, write it: `local f=io.open('/tmp/x.txt','w') f:write(...) f:close()`.
 
@@ -84,6 +88,17 @@ if w then hl.dispatch(hl.dsp.focus({ window = w })) end
   `ydotool click 0xC0` (LMB down+up), `0x40` down, `0x80` up.
 - **SUPER+LMB drag of a floating note:**
   `key 125:1` → `click 0x40` → (moveto new position) → `click 0x80` → `key 125:0`.
+- **SUPER+RMB resize drag (the user's resize bind), right button is 0x01:**
+  `key 125:1` → `click 0x41` → (moveto) → `click 0x81` → `key 125:0`.
+  Park the pointer *inside* the note (center is fine). Keep drag steps
+  small (~40px): pointer acceleration skews bigger ones, and X edges map
+  inversely, so a "left" drag can grow width — check `hyprctl clients`
+  after each drag, not after a guess.
+- **The pointer can be invisibly clamped to a rectangle that does not
+  track the window or monitor bounds** (observed 2026-09-01: right/down
+  moves pinned to a fixed (5213, 863) even with the note elsewhere; the
+  clamp region did not move when the window did). If a drag stalls or
+  inverts, move to a known free spot and re-converge before re-trying.
 - **ydotool's keyboard did NOT land in the Quickshell editor** even when the
   note was the active window — type with `wtype` instead (next section).
 
@@ -149,6 +164,25 @@ to its idle face. Confirm `hyprctl activewindow` is no longer the note.
 ./tests/run.sh                     # node logic + quickshell harness (needs Wayland)
 node --test tests/*.test.mjs       # logic only, no display
 ```
+
+## 8. Restart / spawn-size checks (ticket 04's "size persists" box)
+
+`omarchy restart shell` is the sanctioned refresh; the note re-maps on its
+own ~1 s in. **The tiling layout pass lands within ~100 ms of the re-map, so
+polling `hyprctl clients` can only ever see the *post-tiling* size — the
+spawn-size transient is not observable by polling** (a 4 ms poller caught
+absent → tiled). What the box actually requires is the observable chain, and
+all of it is: the recorded size reached the state document *before* the
+restart (set a distinctive size, `jq -c '{width,height}'`), the note
+re-maps with text byte-identical, the tiling engine settles a size, and the
+post-load re-sync records that size back (re-`jq` the doc after it idles).
+The "spawns at the recorded size" leg is ticket 05's known gap (spawn sizing
+reads defaults — the async load hasn't landed), not something a poller can
+witness.
+
+**Restart safety:** the shell owns the plugin, not the terminal — `omarchy
+restart shell` does not kill a `foot`/terminal session (check the
+process ancestry of your own shell first, once, if unsure).
 
 ## Throwaway state (never point at the real note by accident)
 
