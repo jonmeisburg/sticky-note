@@ -4,7 +4,7 @@
 **Spec source:** `.scratch/sticky-note/issues/02-editing-autosave.md` (primary, its checkboxes are the DoD) + `docs/spec-sticky-note-v1.md` (user stories + amendments).
 **Purpose of this file:** input for the review-cleanup pass. Findings are recorded verbatim-enough to act on; the fixer session works from this file.
 
-**Status: open (fresh review, 2026-09-01).** Standards is essentially clean (one mild judgement-call DRY). The Spec axis carries the real work: the ticket's scroll box is a genuine, still-in-scope gap, and the commit-flush regression is racy and under-covers user story 10. The diff's 11 ticks lean mostly on "live-verified" annotations rather than re-demonstration in the diff.
+**Status: addressed in `1028370` (code findings) and `4ef8279` (scroll gap + ticket closure), 2026-09-01.** The Standards DRY (`unwrapSpan` extract), the settled commit-flush read, and the new teardown-flush step landed in `1028370`; the scroll box (ticket:22) was verified live (30 seeded paragraphs) and ticked in `4ef8279`, which set the ticket's status to `done`. Full suite green after both: 38 node tests + all quickshell harness steps (`./tests/run.sh`).
 
 ## Standards
 
