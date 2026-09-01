@@ -7,6 +7,8 @@ like any other window. Click to type; click away or Escape to commit.
 Text and size survive reboots. Shipped as an [Omarchy](https://omarchy.org)
 quickshell plugin.
 
+![Sticky Note — one persistent note as a real Hyprland window](screenshot.png)
+
 **Bold:** Ctrl+B toggles bold over the selection, or the word the caret
 touches. Bold is stored as markdown `**` markers in the text itself, so
 while editing you see the raw source (`**word**`); once the note is idle,
