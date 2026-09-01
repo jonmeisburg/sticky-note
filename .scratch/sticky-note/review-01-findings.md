@@ -3,6 +3,8 @@
 **Review:** two-axis (Standards + Spec), fresh session, against commits `66591b8..192fb8c` and the amended spec.
 **Purpose of this file:** input for the review-cleanup pass. Findings are recorded verbatim-enough to act on; the fixer session works from this file.
 
+**Status: addressed in `d0b83b9` (review-cleanup pass, 2026-09-01).** All seven Standards findings and the Spec findings are resolved per the cleanup decisions below: the caret fallback moved to `Bold.tapCaret` (node-tested), the adopt-before-`loaded`-flip ordering fixed in `NoteStateModel.qml`, story-34 x/y clamping deleted, shadow-margin math and `sameState` extracted into `NoteStateLogic`, stale comments fixed, and CLAUDE.md updated. The strengthened startup-race regression was verified to fail when either the write guard or the ordering is reverted. **Still open (deliberately, per the recorded decisions):** ticket 05's clamping checkbox is in tension with the amendment and will be amended by the user separately; ticket 02's status/checkboxes lag the code.
+
 ## Standards
 
 No documented repo standards exist (no CODING_STANDARDS/CONTRIBUTING/AGENTS.md, no lint tooling), so all findings are judgement calls; no hard violations.
