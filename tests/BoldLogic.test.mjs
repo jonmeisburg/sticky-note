@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { toggleBold, docToSource, tapCaret } from "../logic/BoldLogic.mjs";
+import { toggleBold, docToSource, tapCaret, boldOnlyHtml } from "../logic/BoldLogic.mjs";
 
 // --- toggleBold with a selection ------------------------------------------
 
@@ -198,4 +198,58 @@ test("falls to end-of-source when the map refuses (other markdown)", () => {
 test("falls to end-of-source when the rendered text is a superset", () => {
   // the map can't explain extra rendered text, so it refuses
   assert.equal(tapCaret("plain", "plain more", 2), "plain".length);
+});
+
+// --- boldOnlyHtml: the idle face's bold-only safe rendering --------------
+// The stored text is rendered as the one formatting feature the spec
+// promises — bold — with everything HTML-special escaped first, so the
+// output can only ever contain <b>, <br>, and inert text. This is the
+// seam behind the marketplace review's "restrict rendering to an
+// explicitly safe formatting subset".
+
+test("render: bold markers become <b>, newlines become <br>", () => {
+  assert.equal(boldOnlyHtml("a **b** c"), "a <b>b</b> c");
+  assert.equal(boldOnlyHtml("one\ntwo"), "one<br>two");
+});
+
+test("render: HTML in the note is escaped, never a tag", () => {
+  // a pasted image/link/handler must render as literal characters,
+  // not fire a fetch or become clickable
+  assert.equal(
+    boldOnlyHtml("<img src=https://evil.example/x>"),
+    "&lt;img src=https://evil.example/x&gt;"
+  );
+  assert.equal(
+    boldOnlyHtml("![](https://evil.example/pixel)"),
+    "![](https://evil.example/pixel)"
+  );
+  assert.equal(
+    boldOnlyHtml("[click](https://evil.example)"),
+    "[click](https://evil.example)"
+  );
+});
+
+test("render: entity characters are escaped before markup is applied", () => {
+  assert.equal(boldOnlyHtml("fish &amp; chips"), "fish &amp;amp; chips");
+  assert.equal(boldOnlyHtml('say "hi"'), "say &quot;hi&quot;");
+});
+
+test("render: unpaired markers stay literal text", () => {
+  assert.equal(boldOnlyHtml("a ** b"), "a ** b");
+  assert.equal(boldOnlyHtml("**unbalanced"), "**unbalanced");
+});
+
+test("render: bold round-trips with the rendered plain text", () => {
+  // the docToSource prediction must still hold for bold-only documents:
+  // rendered text = source minus paired markers
+  const source = "aa **bold** cc\nsecond **line**";
+  const html = boldOnlyHtml(source);
+  const rendered = html
+    .replace(/<b>|<\/b>/g, "")
+    .replace(/<br>/g, "\n");
+  assert.notEqual(docToSource(source, rendered, 3), null);
+});
+
+test("render: empty source renders empty", () => {
+  assert.equal(boldOnlyHtml(""), "");
 });

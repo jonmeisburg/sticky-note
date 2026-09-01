@@ -1,0 +1,426 @@
+<title>sticky-note for Omarchy</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --desk: #14171d;
+    --desk-glow: rgba(247, 217, 92, 0.07);
+    --raised: #1c202a;
+    --line: #272c37;
+    --ink: #eae7dd;
+    --dim: #9b978b;
+    --accent: #f7d95c;
+    --accent-soft: rgba(247, 217, 92, 0.12);
+    --paper: #f7d95c;
+    --paper-top: #fbe687;
+    --paper-ink: #2f2a15;
+    --paper-dim: #776e3d;
+    --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
+    --body: "Instrument Sans", system-ui, sans-serif;
+    --display: "Bricolage Grotesque", var(--body);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(900px 500px at 78% 12%, var(--desk-glow), transparent 70%),
+      radial-gradient(circle, rgba(255, 255, 255, 0.035) 1px, transparent 1.5px) 0 0 / 28px 28px,
+      var(--desk);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 28px; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+  code, kbd, .mono { font-family: var(--mono); }
+
+  /* ---------- top bar ---------- */
+  header { border-bottom: 1px solid var(--line); }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 0; font-family: var(--mono); font-size: 13px;
+  }
+  .topbar .mark { color: var(--ink); font-weight: 500; letter-spacing: 0.02em; }
+  .topbar .mark::before { content: "▌"; color: var(--accent); margin-right: 8px; }
+  .topbar nav { display: flex; gap: 26px; }
+  .topbar nav a { color: var(--dim); }
+  .topbar nav a:hover { color: var(--ink); text-decoration: none; }
+
+  /* ---------- hero ---------- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 56px;
+    align-items: center;
+    padding: 84px 0 96px;
+  }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--dim); margin: 0 0 20px;
+  }
+  .eyebrow b { color: var(--accent); font-weight: 500; }
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(2.3rem, 4.6vw, 3.4rem);
+    font-weight: 640;
+    line-height: 1.06;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0 0 22px;
+  }
+  h1 em { font-style: normal; color: var(--accent); }
+  .lede { font-size: 1.1rem; color: var(--dim); max-width: 30rem; margin: 0 0 30px; }
+  .lede strong { color: var(--ink); font-weight: 500; }
+
+  .hero-cmd {
+    display: inline-flex; align-items: baseline; gap: 10px;
+    background: var(--raised); border: 1px solid var(--line);
+    padding: 12px 16px; font-family: var(--mono); font-size: 13.5px;
+    color: var(--ink); max-width: 100%;
+  }
+  .hero-cmd .p { color: var(--accent); user-select: none; }
+  .hero-cmd code { white-space: nowrap; }
+
+  /* ---------- the note window (live demo) ---------- */
+  .stage { position: relative; }
+  .window {
+    border: 1px solid rgba(247, 217, 92, 0.75);
+    border-radius: 6px;
+    background: var(--raised);
+    box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.65);
+    overflow: hidden;
+  }
+  .titlebar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 8px 12px;
+    font-family: var(--mono); font-size: 11px; color: var(--dim);
+    border-bottom: 1px solid var(--line);
+    letter-spacing: 0.02em;
+  }
+  .titlebar .tag { color: rgba(247, 217, 92, 0.6); }
+
+  .paper {
+    background: linear-gradient(180deg, var(--paper-top), var(--paper) 34%);
+    color: var(--paper-ink);
+    min-height: 320px; max-height: 380px;
+    padding: 22px 24px;
+    font-size: 15.5px; line-height: 1.65;
+    cursor: text;
+    overflow-y: auto;
+  }
+  .paper ul { list-style: none; margin: 6px 0; padding: 0; }
+  .paper li { padding-left: 26px; position: relative; }
+  .paper li::before { content: "—"; position: absolute; left: 2px; color: var(--paper-dim); }
+  .paper li.todo::before { display: none; }
+  .paper strong { font-weight: 750; }
+  .paper .gap { height: 0.65em; }
+  .box {
+    position: absolute; left: 2px; top: 0.32em;
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--paper-ink); border-radius: 3px;
+  }
+  .box.done { background: var(--paper-ink); }
+  .box.done::after {
+    content: ""; position: absolute; left: 3.5px; top: 0.5px;
+    width: 4px; height: 8px;
+    border: solid var(--paper); border-width: 0 2px 2px 0;
+    transform: rotate(43deg);
+  }
+
+  #src {
+    display: block; width: 100%; min-height: 276px;
+    border: 0; padding: 0; margin: 0;
+    background: transparent; color: var(--paper-ink);
+    font-family: var(--mono); font-size: 13.5px; line-height: 1.75;
+    resize: none; caret-color: var(--paper-ink);
+  }
+  #src:focus { outline: none; }
+  .window.editing .paper { cursor: default; }
+  .window.editing { border-color: var(--accent); box-shadow: 0 24px 60px -14px rgba(0,0,0,0.7), 0 0 0 1px var(--accent-soft); }
+  .window:not(.editing) #src { display: none; }
+  .window.editing #view { display: none; }
+
+  .stage-cap {
+    margin-top: 14px; font-family: var(--mono); font-size: 12px;
+    color: var(--dim); text-align: center; letter-spacing: 0.02em;
+  }
+  .stage-cap b { color: var(--accent); font-weight: 500; }
+
+  /* ---------- sections ---------- */
+  section { padding: 72px 0; border-top: 1px solid var(--line); }
+  .sec-head { margin: 0 0 44px; }
+  h2 {
+    font-family: var(--display); font-size: 1.7rem; font-weight: 600;
+    letter-spacing: -0.01em; margin: 6px 0 0; text-wrap: balance;
+  }
+
+  .rows { border-top: 1px solid var(--line); }
+  .row {
+    display: grid; grid-template-columns: 190px 1fr; gap: 32px;
+    padding: 30px 0; border-bottom: 1px solid var(--line);
+  }
+  .row .k {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.13em;
+    text-transform: uppercase; color: var(--accent); padding-top: 5px;
+  }
+  .row h3 { font-family: var(--display); font-size: 1.22rem; font-weight: 600; margin: 0 0 8px; }
+  .row p { margin: 0; color: var(--dim); max-width: 42rem; }
+  .row code {
+    font-size: 0.85em; background: var(--raised);
+    border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px;
+  }
+
+  /* ---------- install ---------- */
+  .term {
+    background: var(--raised); border: 1px solid var(--line); border-radius: 6px;
+    padding: 18px 20px; overflow-x: auto; margin: 0 0 18px;
+  }
+  .term .lbl {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.13em;
+    text-transform: uppercase; color: var(--dim); margin-bottom: 10px;
+  }
+  .term pre { margin: 0; font-family: var(--mono); font-size: 13.5px; line-height: 1.8; }
+  .term .p { color: var(--accent); user-select: none; }
+  .term .c { color: var(--dim); }
+
+  /* ---------- under the hood ---------- */
+  .hood { display: grid; grid-template-columns: 1.4fr 1fr; gap: 56px; align-items: start; }
+  .hood p { margin: 0; color: var(--dim); }
+  .hood p + p { margin-top: 14px; }
+  .stats {
+    font-family: var(--mono); font-size: 13px; line-height: 2.1;
+    border-left: 1px solid var(--line); padding-left: 28px; color: var(--dim);
+  }
+  .stats b { color: var(--ink); font-weight: 500; }
+  .stats .tick { color: var(--accent); }
+
+  footer { border-top: 1px solid var(--line); padding: 30px 0 44px; }
+  .foot {
+    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 12.5px; color: var(--dim);
+  }
+
+  /* ---------- load-in ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    .rise { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+    .d1 { animation-delay: 0.08s; } .d2 { animation-delay: 0.18s; }
+    .d3 { animation-delay: 0.28s; } .d4 { animation-delay: 0.34s; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+  }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; gap: 48px; padding: 56px 0 64px; }
+    .row { grid-template-columns: 1fr; gap: 8px; }
+    .hood { grid-template-columns: 1fr; gap: 32px; }
+    .stats { border-left: 0; border-top: 1px solid var(--line); padding: 20px 0 0; }
+  }
+</style>
+
+<header>
+  <div class="wrap topbar">
+    <span class="mark">sticky-note</span>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/jonmeisburg/sticky-note">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <div>
+      <p class="eyebrow rise d1"><b>Omarchy</b> · Arch + Hyprland + quickshell</p>
+      <h1 class="rise d2">One note, tiled in with everything else.</h1>
+      <p class="lede rise d3">
+        sticky-note is a single persistent markdown note for your desktop.
+        It spawns as a <strong>real compositor window</strong> — resize it, tile it,
+        restart your shell — and your text is already saved.
+      </p>
+      <div class="hero-cmd rise d4">
+        <span class="p">$</span>
+        <code>git clone https://github.com/jonmeisburg/sticky-note ~/.config/omarchy/plugins/sticky-note</code>
+      </div>
+    </div>
+
+    <div class="stage rise d3">
+      <div class="window" id="win">
+        <div class="titlebar">
+          <span>~/.config/sticky-note/note.json</span>
+          <span class="tag">FloatingWindow</span>
+        </div>
+        <div class="paper">
+          <div id="view" role="button" tabindex="0" aria-label="Open the note for editing"></div>
+          <textarea id="src" spellcheck="false" aria-label="Note source"></textarea>
+        </div>
+      </div>
+      <p class="stage-cap">click the note to edit · <b>Ctrl+B</b> bolds · <b>Esc</b> commits</p>
+    </div>
+  </div>
+
+  <section id="how">
+    <div class="sec-head">
+      <p class="eyebrow">Why it feels right</p>
+      <h2>It behaves like a window, because it is one.</h2>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <span class="k">Real window</span>
+        <div>
+          <h3>Tiles, resizes, remembers</h3>
+          <p>Not a wallpaper overlay — a floating window your compositor actually manages.
+             Tile it beside your editor, drag it to a corner, restart the shell.
+             Geometry is observed from Hyprland and written back, so the note
+             reopens exactly where you left it.</p>
+        </div>
+      </div>
+      <div class="row">
+        <span class="k">Two-face bold</span>
+        <div>
+          <h3>Focus is the mode</h3>
+          <p>While you type, you see the raw source with its <code>**</code> markers.
+             Click away and it renders as markdown. No toolbar, no toggle —
+             active focus edits, focus loss commits, and so does Escape.
+             Try it on the note above.</p>
+        </div>
+      </div>
+      <div class="row">
+        <span class="k">Hard to lose</span>
+        <div>
+          <h3>Written carefully, or not at all</h3>
+          <p>Text saves (debounced) to <code>~/.config/sticky-note/note.json</code> and
+             external edits are picked up live. A corrupt file is never overwritten —
+             it's preserved as <code>note.json.invalid-*</code> while a clean note starts
+             beside it. Nothing is written before the first read completes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="sec-head">
+      <p class="eyebrow">Install</p>
+      <h2>Two commands, then it's just there.</h2>
+    </div>
+    <div class="term">
+      <div class="lbl">Install</div>
+      <pre><span class="p">$</span> git clone https://github.com/jonmeisburg/sticky-note \
+      ~/.config/omarchy/plugins/sticky-note
+<span class="p">$</span> omarchy restart shell</pre>
+    </div>
+    <div class="term">
+      <div class="lbl">Hack on it — hot-reloading, throwaway state</div>
+      <pre><span class="p">$</span> STICKY_NOTE_STATE=/tmp/note.json quickshell -p .
+<span class="c"># your real note at ~/.config/sticky-note/note.json is never touched</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="hood">
+      <div>
+        <p class="eyebrow">Under the hood</p>
+        <p>The QML view only <strong>applies</strong> results. Every decision — document
+           validation and defaults, the size floors, the bold caret map that refuses to
+           guess — lives in plain ES modules under <code>logic/</code>, exercised by node tests.</p>
+        <p>Compositor behavior wasn't unit-tested into existence: each acceptance ticket
+           was demonstrated against the live desktop, driving the real note through
+           Hyprland and asserting on the state file.</p>
+      </div>
+      <div class="stats">
+        <div><b>5/5</b> acceptance tickets verified live</div>
+        <div><b>2</b> pure logic modules, node-tested</div>
+        <div><b>1</b> JSON document — the whole state</div>
+        <div><b>0</b> overlays between you and your windows</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>sticky-note — a quickshell plugin for Omarchy 4</span>
+    <span><a href="https://github.com/jonmeisburg/sticky-note">github.com/jonmeisburg/sticky-note</a></span>
+  </div>
+</footer>
+
+<script>
+  const win = document.getElementById('win');
+  const view = document.getElementById('view');
+  const src = document.getElementById('src');
+
+  src.value =
+    '**Ship** sticky-note v1\n' +
+    '\n' +
+    '- [ ] week-of-real-use check\n' +
+    '- [x] resize from the corner\n' +
+    '- [x] survives a shell restart\n' +
+    '\n' +
+    'Select some text and hit **Ctrl+B** →';
+
+  function esc(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function md(text) {
+    const lines = esc(text).split('\n');
+    let html = '', inList = false;
+    const closeList = () => { if (inList) { html += '</ul>'; inList = false; } };
+    for (const line of lines) {
+      if (!line.trim()) { closeList(); html += '<div class="gap"></div>'; continue; }
+      const todo = line.match(/^-\s\[([ x])\]\s(.*)/);
+      const item = line.match(/^-\s(.*)/);
+      if (todo || item) {
+        if (!inList) { html += '<ul>'; inList = true; }
+        if (todo) {
+          const done = todo[1] === 'x';
+          html += '<li class="todo"><span class="box' + (done ? ' done' : '') + '"></span>'
+                + todo[2].replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '</li>';
+        } else {
+          html += '<li>' + item[1].replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '</li>';
+        }
+      } else {
+        closeList();
+        html += '<div>' + line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '</div>';
+      }
+    }
+    closeList();
+    return html;
+  }
+
+  function render() { view.innerHTML = md(src.value); }
+  function openEditor() { win.classList.add('editing'); src.focus(); }
+
+  view.addEventListener('click', openEditor);
+  view.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEditor(); }
+  });
+
+  src.addEventListener('blur', () => { win.classList.remove('editing'); render(); });
+  src.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); src.blur(); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      const a = src.selectionStart, b = src.selectionEnd;
+      if (a === b) {
+        src.setRangeText('****', a, b, 'end');
+        src.selectionStart = src.selectionEnd = a + 2;
+      } else {
+        src.setRangeText('**' + src.value.slice(a, b) + '**', a, b, 'select');
+      }
+    }
+  });
+
+  render();
+</script>

@@ -195,3 +195,22 @@ export function tapCaret(source, rendered, docPos) {
   const src = docToSource(source, rendered, docPos);
   return src === null ? source.length : src;
 }
+
+// The idle face's rendering: the source restricted to its one documented
+// formatting feature — bold. Everything HTML-special is escaped first, so
+// the output can only ever contain <b>, <br>, and inert text; a note that
+// says "![](https://…)" or "<img src=…>" renders those characters
+// literally instead of as a tag. No remote fetches, no links, no headings:
+// the stored text is rendered as the bold-only subset the spec promises,
+// never as full markdown. The view binds this to a RichText TextArea and
+// applies nothing itself.
+export function boldOnlyHtml(source) {
+  const escaped = source
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+  return escaped
+    .replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>")
+    .replace(/\n/g, "<br>");
+}

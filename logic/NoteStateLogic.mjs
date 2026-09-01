@@ -20,6 +20,15 @@ export const DEFAULT_HEIGHT = 300
 export const MIN_WIDTH = 140
 export const MIN_HEIGHT = 140
 
+// The largest state document the note will read, in bytes (4 MiB — several
+// full books of text; no real note approaches it). The service refuses to
+// load a file over this and runs on defaults with persistence unavailable,
+// so a pathologically large file can never be read into memory whole.
+// Document VALUES are not capped (see parseState): the document is a
+// record, not a driver, so the cap guards the file read itself — the only
+// unbounded resource on the load path.
+export const MAX_STATE_BYTES = 4 * 1024 * 1024
+
 export function defaults() {
   return {
     text: "",

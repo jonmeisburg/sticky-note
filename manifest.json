@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "author": "Jon Meisburg",
   "description": "A single persistent sticky note as a real Hyprland window: tiles alongside your windows, click to type, native move/resize. Text and size survive reboots.",
+  "license": "MIT",
   "kinds": [
     "service"
   ],

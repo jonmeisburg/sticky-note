@@ -193,17 +193,19 @@ FloatingWindow {
         onTextChanged: root.model.setText(text)
       }
 
-      // The idle face: the note rendered as markdown. Untouchable —
-      // it never takes focus or selection; the tap catcher below hands
-      // clicks over to the editor. The text binding is cleared while
-      // editing so the markdown is not re-parsed on every keystroke.
+      // The idle face: the note rendered through Bold.boldOnlyHtml — the
+      // bold-only safe subset (HTML escaped, "**"→"<b>"), never full
+      // markdown. Untouchable — it never takes focus or selection; the tap
+      // catcher below hands clicks over to the editor. The text binding is
+      // cleared while editing so the markup is not re-parsed on every
+      // keystroke.
       TextArea {
         id: idleView
         y: 0
         width: flick.width
         visible: !root.editing
-        text: root.editing ? "" : textEdit.text
-        textFormat: TextEdit.MarkdownText
+        text: root.editing ? "" : Bold.boldOnlyHtml(textEdit.text)
+        textFormat: TextEdit.RichText
         readOnly: true
         selectByMouse: false
         activeFocusOnPress: false
