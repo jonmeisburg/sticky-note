@@ -37,7 +37,16 @@ Item {
   /// Tunable: how long a burst of typing settles before it hits the disk.
   property int saveDebounceMs: 500
 
+  /// True once the first read attempt has finished (a load or a load
+  /// failure). Nothing is written before that: a startup burst of observed
+  /// geometry can arrive before the async file read lands, and flushing it
+  /// then would clobber the note with defaults. The view also waits on
+  /// this to start recording geometry.
+  readonly property bool loaded: root._loaded
+
   property bool _dirty: false
+  property bool _loaded: false
+  property bool _firstRead: true
   // True between our own write and the file watcher's notification for it,
   // so onFileChanged can tell "we changed it" from "someone else did".
   property bool _selfWrite: false
@@ -95,9 +104,11 @@ Item {
   }
 
   /// Flush any pending change to disk. Safe to call when clean: a no-op.
+  /// Also a no-op before the first read: writing a document the model has
+  /// never read is exactly the startup race that loses notes.
   function saveNow() {
     saveDebounce.stop()
-    if (path === "" || !_dirty) return
+    if (path === "" || !_loaded || !_dirty) return
     _dirty = false
     // Our own write will trip the file watcher; adopt() must not re-enter
     // on our own bytes (no reload churn, and no clamping/adopting of a
@@ -110,16 +121,22 @@ Item {
 
   // A document we wrote ourselves parses back to exactly `state`; external
   // edits parse to something new and are adopted (state and file must never
-  // silently diverge). While a local edit is pending, the local edit wins.
-  function adopt(raw) {
+  // silently diverge). While a local edit is pending, the local edit wins —
+  // with one exception: the first read must adopt regardless of pending
+  // dirt, because before it there is no local truth to prefer. The only
+  // pre-read changes are geometry observed between spawn and load; the
+  // first read retires that delta (the view re-syncs geometry once
+  // `loaded` flips, so nothing observed is lost for long).
+  function adopt(raw, initial) {
     var result = Logic.parseState(raw)
     if (!result.ok) {
-      handleCorrupt(raw)
+      handleCorrupt(raw, initial)
       return
     }
-    if (_dirty) return
+    if (_dirty && !initial) return
     var next = Logic.clampToScreen(result.state, screenW, screenH)
     if (JSON.stringify(next) !== JSON.stringify(state)) state = next
+    if (initial) _dirty = false
   }
 
   // A malformed document means a lost note, not a broken desktop (spec user
@@ -129,8 +146,8 @@ Item {
   // FileView plumbing as the recovery write, in order, at detection time —
   // never through a shell command (quoting breaks on odd paths) and never
   // as a deferred rename that could carry a later recovery save away.
-  function handleCorrupt(raw) {
-    if (_dirty) return
+  function handleCorrupt(raw, initial) {
+    if (_dirty && !initial) return
     state = Logic.defaults()
     _dirty = false
     var stamp = new Date().getTime()
@@ -152,10 +169,17 @@ Item {
     watchChanges: true
     atomicWrites: true
     printErrors: false
-    onLoaded: root.adopt(text())
+    onLoaded: {
+      root._loaded = true
+      var initial = root._firstRead
+      root._firstRead = false
+      root.adopt(text(), initial)
+    }
     onLoadFailed: {
       // Absent or unreadable file: safe defaults, nothing written until
       // the user actually changes something.
+      root._loaded = true
+      root._firstRead = false
       if (!root._dirty) root.state = Logic.defaults()
     }
     onFileChanged: {

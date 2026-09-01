@@ -207,6 +207,41 @@ ShellRoot {
         })
       }})
 
+      // The startup race, as it happens live: a note is on disk, a fresh
+      // model is pointed at it, and observed geometry arrives before the
+      // async file read lands. The debounced save that follows must not
+      // be able to write defaults over a document the model never read.
+      enqueue({ name: "startup race: a save before the first read cannot clobber the file", run: function() {
+        var racePath = tmpDir + "/race.json"
+        var seed = JSON.stringify({ text: "precious", x: 10, y: 10, width: 100, height: 100 })
+        sh("printf '%s' '" + seed + "' > '" + racePath + "'", function() {
+          var m = Qt.createQmlObject("
+            import QtQuick
+            import \".\"
+            NoteStateModel {
+              screenW: root.screenW
+              screenH: root.screenH
+            }", root)
+          m.path = racePath
+          // Observed geometry, as the spawn -> tile burst delivers it,
+          // before the read has completed.
+          m.updateGeometry(10, 10, 400, 500)
+          wait(1200, function() { // debounce (500ms) + read, any order
+            sh("cat '" + racePath + "'", function(out2) {
+              assertEq(out2, seed, "pre-read save never touched the file")
+              assertEq(m.state.text, "precious", "disk text survived the startup race")
+              // The seed's width:100 is clamped up to the minimum at load,
+              // which is the tell that the disk document won — not the
+              // pre-read observed 400.
+              assertEq(m.state.width, Logic.MIN_WIDTH, "first read retires the pre-read geometry delta")
+              assertTruthy(!m.dirty, "the race left the model clean")
+              m.destroy()
+              proceed()
+            })
+          })
+        })
+      }})
+
       runNext()
     })
   }

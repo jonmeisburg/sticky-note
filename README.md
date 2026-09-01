@@ -7,6 +7,11 @@ like any other window. Click to type; click away or Escape to commit.
 Text and size survive reboots. Shipped as an [Omarchy](https://omarchy.org)
 quickshell plugin.
 
+**Bold:** Ctrl+B toggles bold over the selection, or the word the caret
+touches. Bold is stored as markdown `**` markers in the text itself, so
+while editing you see the raw source (`**word**`); once the note is idle,
+the markdown renders and bold words appear bold.
+
 State lives in `~/.config/sticky-note/note.json` — one human-readable JSON
 document (`text`, `x`, `y`, `width`, `height`). Text is restored exactly;
 size is restored at spawn and then follows the compositor. A corrupt file
@@ -61,8 +66,10 @@ applying code changes — a restart always does.)
 ./tests/run.sh
 ```
 
-1. `node --test` over the state-document logic (the project's one pure
-   seam) — no display needed.
+1. `node --test` over the pure logic seams — the state-document logic and
+   the bold toggle/position map — no display needed.
 2. A live quickshell instance drives `NoteStateModel.qml` against a real
    temp file: save/load round-trips, debounced autosave, external-edit
-   following, and corrupt-file fallback. Requires a running Wayland session.
+   following, corrupt-file fallback, and the startup-race regression
+   (a save before the first read can never clobber the file). Requires a
+   running Wayland session.

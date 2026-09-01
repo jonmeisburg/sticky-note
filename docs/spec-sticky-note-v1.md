@@ -152,3 +152,58 @@ and geometry round-trip all remain under seam 1's tests.
 
 The original spec text above is kept as the record of what was grilled and
 why; where it contradicts this amendment, the amendment wins.
+
+---
+
+## Amendment — bold words, as markdown (2026-08-31, same day, after live use)
+
+The user asked for bold ("used to pressing ctrl+b to toggle this"). This
+narrows — but does not reverse — the original scope line *"Rich text,
+markdown rendering, checkboxes, or links"*: **bold is now in scope, and it
+is the only rich-text feature that is.** Markdown rendering exists in the
+note for exactly one glyph decision (bold words render bold); checkboxes
+and links stay out, and general markdown (headings, italics, lists) is
+neither rendered deliberately nor promised to survive a caret mapping.
+
+**The fact that forced the design:** QML's `TextEdit` rich-text API
+(`QQuickTextDocument`) exposes only load/save operations to QML — no
+`QTextCursor`, no character formats. Live WYSIWYG bold is not possible in
+pure QML. So bold lives in the stored text itself as markdown `**`
+markers, and the note shows two faces over that one text:
+
+- **Editing** (the text area holds active focus): the raw source, `**word**`
+  and all — exactly what is stored, so markers are never a mystery.
+- **Idle** (the default, most of a sticky note's life): the source
+  rendered as markdown, so bold words appear bold.
+
+Ctrl+B toggles bold over the selection, or the word the caret touches
+when nothing is selected (VSCode-style); in open whitespace it inserts
+empty `****` markers so the next thing typed renders bold, and pressing
+it again inside empty markers removes them.
+
+**A third seam joins the model:** `logic/BoldLogic.mjs` — the toggle
+itself and the rendered→source position map used when a click on the
+idle view enters editing (the caret must land in the source at the
+matching spot). The map refuses to guess when the rendered text cannot
+be explained by bold markers alone (a heading, italics, any other
+markdown): the caret then falls to the end of the text — a misplaced
+caret is fine, a misplaced edit is not. All position decisions live in
+the logic module and are covered by node tests; the view only applies
+results. The state document stays plain text — human-readable
+`"**word**"` in the JSON, per user story 29.
+
+**Persistence, hardened the same day:** the first amendment made geometry
+*observed*, and the spawn→tile burst can arrive before the model's
+async file read lands. That race could flush defaults over a note the
+model had never read — a real data-loss path, found while testing the
+bold feature. Fixed in the model's contract and regression-tested there:
+**nothing is written before the first read completes, and the first read
+adopts the disk document unconditionally.** The view holds geometry
+syncs back until the read lands and re-syncs once after, so observed
+size is still recorded.
+
+**Testing Decisions updated:** seam 1 (state model) gains the
+startup-race regression. The bold seam (toggle + position map) is tested
+the same way as the model's logic module — pure node tests, no display,
+no pixels. The two-face rendering (markers raw while editing, bold when
+idle) is verified on the manual checklist, like all rendering.

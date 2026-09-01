@@ -10,6 +10,11 @@
 
 - [ ] A clean click on the note's text begins editing: text cursor appears, editing cue visible.
 - [ ] Typing lands in the note and only in the note — a real window only receives keystrokes when the compositor has focused it, same as every other window.
+- [ ] Ctrl+B with a selection wraps it in bold markers; Ctrl+B again unwraps it (identity round-trip).
+- [ ] Ctrl+B with the caret on a word toggles that word (VSCode-style); in open whitespace it inserts empty `**` markers, and pressing it again inside them removes them.
+- [ ] While editing, the raw source shows `**markers**`; when editing ends, the idle view renders bold words in bold.
+- [ ] Clicking the idle (rendered) view enters editing with the caret at the corresponding spot in the source; clicks land at the end when other markdown makes the position ambiguous.
+- [ ] BoldLogic node tests pass (the bold seam suite).
 - [ ] Changing the note's text persists to the state document automatically during the edit, with no explicit save action; debounced so bursts of typing don't thrash the disk.
 - [ ] Clicking away from the note (focus moves to another window) commits editing.
 - [ ] Pressing Escape commits editing and drops the cursor while the window keeps focus.

@@ -6,6 +6,9 @@
 
 **Status:** ready-for-agent
 
+**Known gap (2026-08-31, recorded not fixed):** the window is created before the async state load completes, so spawn sizing (`NoteWindow`'s `Component.onCompleted`) always reads defaults — the persisted doc size never applies at spawn. Inert in practice while the note auto-tiles (the compositor reshapes it at map anyway, and the post-load re-sync records what it settled on), but it means the doc's width/height record the last session's observed size, not the next session's spawn size. A fix would have to apply the doc size only when no compositor reshape has happened yet — otherwise it would fight tiling.
+
+- [x] **Startup race (fixed 2026-08-31):** the spawn→tile geometry burst could arrive before the model's async file read and flush defaults over a note the model had never read — a data-loss path, found live. Fixed in the model (`NoteStateModel.qml`): nothing is written before the first read completes, and the first read adopts the disk document unconditionally; the view holds geometry syncs until the read lands and re-syncs once after. Regression-tested in `tests-harness.qml` ("a save before the first read cannot clobber the file").
 - [ ] A state file pointing somewhere off-screen (or at an absurd position/size) clamps back on-screen at load; no crash, note reachable.
 - [ ] After monitor change / resolution change, the note is still visible and usable after its next load.
 - [ ] Extended-use stability pass: no crash, no resource growth, no data loss across a long session with the note idle, edited, moved, and resized repeatedly.
