@@ -8,12 +8,12 @@
 
 **Status:** ready-for-agent
 
-- [ ] A clean click on the note's text begins editing: text cursor appears, editing cue visible.
-- [ ] Typing lands in the note and only in the note — a real window only receives keystrokes when the compositor has focused it, same as every other window.
-- [x] Ctrl+B with a selection wraps it in bold markers; Ctrl+B again unwraps it (identity round-trip). *(live-verified; a bug found in that live pass — selecting a whole bold span end-to-end, markers included, doubled the markers (`****Test me****`) instead of unwrapping — is fixed in `BoldLogic.toggleSelection` (exact-span unwrap, guarded to single spans) and covered by three new node tests.)*
-- [ ] Ctrl+B with the caret on a word toggles that word (VSCode-style); in open whitespace it inserts empty `**` markers, and pressing it again inside them removes them.
-- [ ] While editing, the raw source shows `**markers**`; when editing ends, the idle view renders bold words in bold.
-- [ ] Clicking the idle (rendered) view enters editing with the caret at the corresponding spot in the source; clicks land at the end when other markdown makes the position ambiguous.
+- [x] A clean click on the note's text begins editing: text cursor appears, editing cue visible.
+- [x] Typing lands in the note and only in the note — a real window only receives keystrokes when the compositor has focused it, same as every other window.
+- [x] Ctrl+B with a selection wraps it in bold markers; Ctrl+B again unwraps it (identity round-trip). *(live-verified; a whole-span select — grabbing `**word**` end to end, markers included — used to double the markers into `****word****`; fixed in `BoldLogic.toggleSelection` with an exact-span unwrap guarded to single spans, covered by three node tests.)*
+- [x] Ctrl+B with the caret on a word toggles that word (VSCode-style); in open whitespace it inserts empty `**` markers, and pressing it again inside them removes them.
+- [x] While editing, the raw source shows `**markers**`; when editing ends, the idle view renders bold words in bold.
+- [x] Clicking the idle (rendered) view enters editing with the caret at the corresponding spot in the source; clicks land at the end when other markdown makes the position ambiguous.
 - [x] BoldLogic node tests pass (the bold seam suite).
 - [x] Changing the note's text persists to the state document automatically during the edit, with no explicit save action; debounced so bursts of typing don't thrash the disk. *(harness: debounced autosave writes the new text.)*
 - [x] Clicking away from the note (focus moves to another window) commits editing. *(live-verified: focus loss committed + flushed the pending text.)*
