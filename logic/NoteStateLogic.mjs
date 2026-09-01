@@ -6,8 +6,8 @@
 //
 //   { "text": "...", "x": 16, "y": 16, "width": 300, "height": 300 }
 //
-// Tunable feel constants live here, all in one place (spec: the threshold
-// and size floor must be adjustable without hunting through the code).
+// Tunable constants live here, all in one place (spec: the size floor
+// must be adjustable without hunting through the code).
 
 export const DEFAULT_X = 16
 export const DEFAULT_Y = 16
@@ -15,8 +15,8 @@ export const DEFAULT_WIDTH = 300
 export const DEFAULT_HEIGHT = 300
 
 // Below this the note is an unreadable sliver (spec user story 19). The
-// window enforces it as a native minimumSize; load-time clamping uses it
-// too, so a hand-edited document can't restore a sliver.
+// window enforces it as a native minimumSize, so a hand-edited document
+// can't restore a sliver either.
 export const MIN_WIDTH = 140
 export const MIN_HEIGHT = 140
 
@@ -37,8 +37,9 @@ function isFiniteNumber(value) {
 // Parse raw file contents. Anything that is not a well-formed state
 // document is rejected ({ ok: false }) so the caller can fall back to
 // defaults without crashing (spec user story 30). Absurd-but-well-typed
-// values are NOT rejected here — clamping at load is their recovery path
-// (spec user story 34, ticket 05).
+// values are NOT rejected here: the document is a record, not a driver —
+// placement is compositor-owned, and the only size limit left is the
+// window's native minimumSize.
 export function parseState(raw) {
   if (typeof raw !== "string") return { ok: false }
   var doc
@@ -63,21 +64,31 @@ export function parseState(raw) {
   }
 }
 
-function knownScreen(screenW, screenH) {
-  return isFiniteNumber(screenW) && isFiniteNumber(screenH) && screenW > 0 && screenH > 0
+// The window carries a drop shadow that spills outside the paper, so a
+// window size and its paper (state-document) size are offset by 2*margin.
+// The state document holds paper sizes; the window's are derived from them.
+export function paperToWindowSize(paperSize, margin) {
+  return paperSize + margin * 2
 }
 
-// Load-time recovery (spec user story 34): whatever was saved, the restored
-// size must be sane on this screen. Placement itself is compositor-owned
-// (the note is a real window), so this protects only what the document
-// feeds back at spawn — the window's size.
-export function clampToScreen(state, screenW, screenH) {
-  if (!knownScreen(screenW, screenH)) return state
-  var width = Math.min(Math.max(Math.round(state.width), MIN_WIDTH), Math.round(screenW))
-  var height = Math.min(Math.max(Math.round(state.height), MIN_HEIGHT), Math.round(screenH))
-  var x = Math.min(Math.max(Math.round(state.x), 0), Math.round(screenW) - width)
-  var y = Math.min(Math.max(Math.round(state.y), 0), Math.round(screenH) - height)
-  return { text: state.text, x: x, y: y, width: width, height: height }
+export function windowToPaperSize(windowSize, margin) {
+  return windowSize - margin * 2
+}
+
+// Two state documents carry the same record when they hold the same
+// fields with the same values, in any key order — deep, and not subject
+// to JSON.stringify's dependence on key order.
+export function sameState(a, b) {
+  if (a === b) return true
+  if (typeof a !== "object" || a === null || typeof b !== "object" || b === null) return false
+  var keys = Object.keys(a)
+  if (keys.length !== Object.keys(b).length) return false
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i]
+    if (!Object.prototype.hasOwnProperty.call(b, key)) return false
+    if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) return false
+  }
+  return true
 }
 
 export function serializeState(state) {

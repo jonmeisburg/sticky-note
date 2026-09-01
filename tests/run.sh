@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Test runner for the sticky-note plugin.
 #
-# 1. node --test over the pure logic seams (state document + interaction
-#    state machine).
+# 1. node --test over the pure logic seams (state document + bold).
 # 2. a live quickshell instance driving NoteStateModel.qml against a real
 #    temp file (the QML harness prints SNTEST lines; we watch for the
 #    verdict and clean the process up).

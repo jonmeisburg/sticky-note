@@ -44,12 +44,6 @@ Item {
 
   NoteStateModel {
     id: model
-
-    // Screen size reaches the model through the note's own screen, so a
-    // monitor change re-clamps the note back on-screen through the same
-    // path as loading (spec user story 34).
-    screenW: noteWindow.screen ? noteWindow.screen.width : 0
-    screenH: noteWindow.screen ? noteWindow.screen.height : 0
   }
 
   NoteWindow {

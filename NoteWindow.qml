@@ -39,18 +39,18 @@ FloatingWindow {
   readonly property int shadowMargin: 12
 
   // The readability floor (spec user story 19) as a native constraint.
-  minimumSize: Qt.size(Logic.MIN_WIDTH + shadowMargin * 2,
-                       Logic.MIN_HEIGHT + shadowMargin * 2)
+  minimumSize: Qt.size(Logic.paperToWindowSize(Logic.MIN_WIDTH, shadowMargin),
+                       Logic.paperToWindowSize(Logic.MIN_HEIGHT, shadowMargin))
 
-  // Spawn size from the persisted document — clamped at load, so a
-  // hand-edited absurdity becomes a sane window, not a sliver or a
-  // screen-filler. After this the compositor is in charge; we never
-  // write geometry back to the window while it lives. (FloatingWindow
-  // exposes no x/y at all: placement belongs to Hyprland, so the
-  // document's x/y record only what a hand-edit or load produced.)
+  // Spawn size from the persisted document; the readability floor above is
+  // the only size limit — placement belongs to Hyprland, so a hand-edited
+  // document's x/y are recorded, not applied. After this the compositor is
+  // in charge; we never write geometry back to the window while it lives.
+  // (FloatingWindow exposes no x/y at all: the document's x/y record only
+  // what a hand-edit or load produced.)
   Component.onCompleted: {
-    implicitWidth = model.state.width + shadowMargin * 2
-    implicitHeight = model.state.height + shadowMargin * 2
+    implicitWidth = Logic.paperToWindowSize(model.state.width, shadowMargin)
+    implicitHeight = Logic.paperToWindowSize(model.state.height, shadowMargin)
   }
 
   // Record compositor-driven size changes (tiling shuffles, resizes)
@@ -63,9 +63,10 @@ FloatingWindow {
   onWidthChanged: if (model.loaded) syncGeometry()
   onHeightChanged: if (model.loaded) syncGeometry()
 
-  // Once the first read lands, whatever geometry the compositor settled
-  // on during the wait is recorded in one re-sync — observed size is not
-  // lost to the hold-back above.
+  // Once the first read lands — after the model has adopted the disk
+  // document, which is what the model's loaded flip signals — whatever
+  // geometry the compositor settled on during the wait is recorded in one
+  // re-sync: observed size is not lost to the hold-back above.
   Connections {
     target: model
     function onLoadedChanged() { if (model.loaded) syncGeometry() }
@@ -74,7 +75,8 @@ FloatingWindow {
   function syncGeometry() {
     model.updateGeometry(
       model.state.x, model.state.y,
-      width - shadowMargin * 2, height - shadowMargin * 2
+      Logic.windowToPaperSize(width, shadowMargin),
+      Logic.windowToPaperSize(height, shadowMargin)
     )
   }
 
@@ -214,10 +216,10 @@ FloatingWindow {
       }
 
       // Click-to-edit while idle: map the tap to a caret position in the
-      // source through the rendered document. BoldLogic refuses the
-      // mapping when the rendering cannot be explained by bold markers
-      // alone (other markdown, e.g. a heading); the caret then lands at
-      // the end — never a wrong mid-text position.
+      // source through the rendered document. BoldLogic owns the whole
+      // decision (tapCaret): the mapping, and the fallback to end-of-text
+      // when the rendering cannot be explained by bold markers alone
+      // (other markdown, e.g. a heading) — never a wrong mid-text position.
       MouseArea {
         enabled: !root.editing
         width: flick.width
@@ -225,9 +227,8 @@ FloatingWindow {
 
         onPressed: (mouse) => {
           const docPos = idleView.positionAt(mouse.x, mouse.y)
-          const src = Bold.docToSource(
+          textEdit.cursorPosition = Bold.tapCaret(
             textEdit.text, idleView.getText(0, idleView.length), docPos)
-          textEdit.cursorPosition = src === null ? textEdit.length : src
           // The editor must be visible before it can take focus.
           root.editing = true
           textEdit.forceActiveFocus()

@@ -64,26 +64,24 @@ test("serialize: round-trips through parse and is stable, pretty JSON", () => {
   assert.deepEqual(result.state, original)
 })
 
-test("clampToScreen: a saved position that falls off-screen comes back on-screen", () => {
-  // Monitor change: saved for a 2560px screen, now on 1920x1080.
-  const clamped = State.clampToScreen(
-    { text: "keep me", x: 2500, y: -400, width: 300, height: 300 },
-    1920, 1080
-  )
-  assert.equal(clamped.text, "keep me")
-  assert.ok(clamped.x >= 0 && clamped.x + clamped.width <= 1920, `x=${clamped.x}`)
-  assert.ok(clamped.y >= 0 && clamped.y + clamped.height <= 1080, `y=${clamped.y}`)
-  assert.ok(clamped.x <= 1920 - clamped.width)
+test("paperToWindowSize / windowToPaperSize: the shadow margin offsets the two faces", () => {
+  const margin = 12
+  assert.equal(State.paperToWindowSize(300, margin), 324)
+  assert.equal(State.windowToPaperSize(324, margin), 300)
+  // the round trip is exact, at the floor and off it
+  assert.equal(State.windowToPaperSize(State.paperToWindowSize(State.MIN_WIDTH, margin), margin), State.MIN_WIDTH)
+  assert.equal(State.windowToPaperSize(State.paperToWindowSize(512, margin), margin), 512)
 })
 
-test("clampToScreen: absurd sizes are floored at the minimum and capped at the screen", () => {
-  const clamped = State.clampToScreen({ text: "", x: 10, y: 10, width: 5, height: 100000 }, 1920, 1080)
-  assert.equal(clamped.width, State.MIN_WIDTH)
-  assert.equal(clamped.height, 1080)
-})
-
-test("clampToScreen: unknown screen dimensions leave the state untouched", () => {
-  const state = { text: "", x: -50, y: 9999, width: 300, height: 300 }
-  assert.deepEqual(State.clampToScreen(state, 0, 0), state)
-  assert.deepEqual(State.clampToScreen(state, null, null), state)
+test("sameState: deep, key-order-independent document comparison", () => {
+  const a = { text: "buy milk", x: 10, y: 20, width: 300, height: 400 }
+  const reordered = { height: 400, width: 300, text: "buy milk", x: 10, y: 20 }
+  assert.ok(State.sameState(a, reordered), "key order does not matter")
+  assert.ok(State.sameState(a, a), "identical objects compare equal")
+  assert.ok(!State.sameState(a, { ...a, text: "buy oats" }), "a different text does not")
+  assert.ok(!State.sameState(a, { ...a, width: 400 }), "a different size does not")
+  assert.ok(!State.sameState(a, { ...a, extra: 0 }), "extra fields do not")
+  assert.ok(!State.sameState(a, { text: "buy milk", x: 10, y: 20, width: 300 }), "missing fields do not")
+  assert.ok(!State.sameState(a, null))
+  assert.ok(!State.sameState(null, a))
 })

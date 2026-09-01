@@ -23,11 +23,6 @@ ShellRoot {
   property var failures: []
   property string tmpDir: ""
 
-  // Fixed pretend screen; clamping itself is pure logic already covered by
-  // the node tests — here we only exercise the model's file behavior.
-  readonly property real screenW: 1920
-  readonly property real screenH: 1080
-
   Component.onCompleted: start()
 
   // --- step plumbing -------------------------------------------------------
@@ -117,10 +112,7 @@ ShellRoot {
         model = Qt.createQmlObject("
           import QtQuick
           import \".\"
-          NoteStateModel {
-            screenW: root.screenW
-            screenH: root.screenH
-          }", root)
+          NoteStateModel {}", root)
         model.path = statePath
         wait(600, function() {
           assertEq(model.state, Logic.defaults(), "missing file yields defaults")
@@ -207,10 +199,19 @@ ShellRoot {
         })
       }})
 
-      // The startup race, as it happens live: a note is on disk, a fresh
-      // model is pointed at it, and observed geometry arrives before the
-      // async file read lands. The debounced save that follows must not
-      // be able to write defaults over a document the model never read.
+      // The startup race, as it happens live: a note is on disk, a fresh model
+      // is pointed at it, and a save lands before the async file read
+      // completes. Two contracts must hold at once:
+      //   * the pre-read save is a no-op — a document the model never read
+      //     must not be clobbered (the write guard);
+      //   * the view's re-sync rides the loaded flip, which the model turns
+      //     only after the adopt, so the observed spawn size is recorded on
+      //     top of the adopted document (the ordering).
+      // The pre-read save is flushed explicitly (m.saveNow()) instead of
+      // racing the 500ms debounce against the read: same guard, but the
+      // test stays deterministic — at flush time the read has not even
+      // started. The re-sync is the view's, minus the window: a
+      // Connections on the model recording the observed size.
       enqueue({ name: "startup race: a save before the first read cannot clobber the file", run: function() {
         var racePath = tmpDir + "/race.json"
         var seed = JSON.stringify({ text: "precious", x: 10, y: 10, width: 100, height: 100 })
@@ -219,24 +220,40 @@ ShellRoot {
             import QtQuick
             import \".\"
             NoteStateModel {
-              screenW: root.screenW
-              screenH: root.screenH
+              id: m
+              // the observed spawn size, as the spawn -> tile burst delivers it
+              property int observedW: 400
+              property int observedH: 500
+              // the view's re-sync, without the view: record the observed
+              // size once the first read has landed
+              Connections {
+                target: m
+                function onLoadedChanged() {
+                  if (m.loaded) m.updateGeometry(m.state.x, m.state.y, m.observedW, m.observedH)
+                }
+              }
             }", root)
           m.path = racePath
-          // Observed geometry, as the spawn -> tile burst delivers it,
-          // before the read has completed.
+          // Observed geometry before the read has even started, then the
+          // flush the debounce would have fired.
           m.updateGeometry(10, 10, 400, 500)
-          wait(1200, function() { // debounce (500ms) + read, any order
-            sh("cat '" + racePath + "'", function(out2) {
-              assertEq(out2, seed, "pre-read save never touched the file")
+          m.saveNow()
+          wait(400, function() { // the read has landed; the post-read write has not
+            sh("cat '" + racePath + "'", function(out1) {
+              assertEq(out1, seed, "pre-read save never touched the file")
               assertEq(m.state.text, "precious", "disk text survived the startup race")
-              // The seed's width:100 is clamped up to the minimum at load,
-              // which is the tell that the disk document won — not the
-              // pre-read observed 400.
-              assertEq(m.state.width, Logic.MIN_WIDTH, "first read retires the pre-read geometry delta")
-              assertTruthy(!m.dirty, "the race left the model clean")
-              m.destroy()
-              proceed()
+              assertEq(m.state.width, 400, "re-sync recorded the observed size over the adopted document")
+              assertTruthy(m.dirty, "the recorded size is a pending write")
+              wait(800, function() { // the debounce lands the pending write
+                sh("cat '" + racePath + "'", function(out2) {
+                  var parsed = Logic.parseState(out2)
+                  assertEq(parsed.state, { text: "precious", x: 10, y: 10, width: 400, height: 500 },
+                    "the observed size was persisted over the adopted document")
+                  assertTruthy(!m.dirty, "the race left the model clean")
+                  m.destroy()
+                  proceed()
+                })
+              })
             })
           })
         })

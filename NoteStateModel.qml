@@ -6,7 +6,7 @@ import "logic/NoteStateLogic.mjs" as Logic
 //
 // Owns load, save, and file-watch-reload for the single state document
 // (text + geometry). Every decision — what a valid document is, what the
-// defaults are, how positions clamp back on-screen — is delegated to
+// defaults are, when two documents compare equal — is delegated to
 // NoteStateLogic.mjs so it stays testable without a display (spec:
 // Implementation Decisions).
 //
@@ -22,11 +22,6 @@ Item {
   /// Where the state document lives. Empty until the owner wires it up.
   property string path: ""
 
-  /// Current screen size, for on-screen clamping at load and on monitor
-  /// changes. 0 means "unknown" — the logic modules leave state untouched.
-  property real screenW: 0
-  property real screenH: 0
-
   /// Current state: { text, x, y, width, height }. Replaced (never mutated)
   /// so bindings on it re-evaluate.
   property var state: Logic.defaults()
@@ -38,10 +33,13 @@ Item {
   property int saveDebounceMs: 500
 
   /// True once the first read attempt has finished (a load or a load
-  /// failure). Nothing is written before that: a startup burst of observed
-  /// geometry can arrive before the async file read lands, and flushing it
-  /// then would clobber the note with defaults. The view also waits on
-  /// this to start recording geometry.
+  /// failure) and its result is in `state`. The flip rides after the
+  /// adopt, so the view's post-read re-sync records the observed spawn
+  /// size on top of the adopted document, not underneath it. Nothing is
+  /// written before the flip: a startup burst of observed geometry can
+  /// arrive before the async file read lands, and flushing it then would
+  /// clobber the note with defaults. The view also waits on this to start
+  /// recording geometry.
   readonly property bool loaded: root._loaded
 
   property bool _dirty: false
@@ -51,27 +49,12 @@ Item {
   // so onFileChanged can tell "we changed it" from "someone else did".
   property bool _selfWrite: false
 
-  onScreenWChanged: reclamp()
-  onScreenHChanged: reclamp()
-
   // Teardown (shell reload, logout) flushes anything the debounce still
   // holds, so a quit inside the debounce window costs no data.
   Component.onDestruction: saveNow()
 
   onPathChanged: {
     if (path !== "") Qt.callLater(function() { if (fileView.path !== "") fileView.reload() })
-  }
-
-  function reclamp() {
-    var next = Logic.clampToScreen(state, screenW, screenH)
-    if (JSON.stringify(next) !== JSON.stringify(state)) {
-      state = next
-      // The clamped geometry differs from the disk copy; dirty + debounce
-      // so it actually persists (and adopt() honors it as a pending local
-      // change) instead of silently diverging.
-      _dirty = true
-      saveDebounce.restart()
-    }
   }
 
   // --- mutations ---------------------------------------------------------
@@ -87,17 +70,17 @@ Item {
     saveDebounce.restart()
   }
 
-  // Geometry moves during a drag arrive many times a second; they update
-  // in-memory state and ride the same debounced autosave rather than
-  // hitting the disk per mouse move. The view flushes with saveNow()
-  // when the gesture settles.
+  // Compositor-driven size changes (a tiling shuffle, a resize) arrive
+  // many times a second; they update in-memory state and ride the same
+  // debounced autosave rather than hitting the disk per change. The view
+  // flushes with saveNow() when editing commits.
   function updateGeometry(x, y, width, height) {
     var next = {
       text: state.text,
       x: Math.round(x), y: Math.round(y),
       width: Math.round(width), height: Math.round(height),
     }
-    if (JSON.stringify(next) === JSON.stringify(state)) return
+    if (Logic.sameState(next, state)) return
     state = next
     _dirty = true
     saveDebounce.restart()
@@ -111,8 +94,8 @@ Item {
     if (path === "" || !_loaded || !_dirty) return
     _dirty = false
     // Our own write will trip the file watcher; adopt() must not re-enter
-    // on our own bytes (no reload churn, and no clamping/adopting of a
-    // stale view while a gesture is in flight).
+    // on our own bytes (no reload churn, no re-adopting a document we
+    // just wrote).
     _selfWrite = true
     fileView.setText(Logic.serializeState(state))
   }
@@ -124,9 +107,10 @@ Item {
   // silently diverge). While a local edit is pending, the local edit wins —
   // with one exception: the first read must adopt regardless of pending
   // dirt, because before it there is no local truth to prefer. The only
-  // pre-read changes are geometry observed between spawn and load; the
-  // first read retires that delta (the view re-syncs geometry once
-  // `loaded` flips, so nothing observed is lost for long).
+  // pre-read change is geometry observed between spawn and load; the first
+  // read retires that delta, and the view's re-sync — which rides the
+  // `loaded` flip, i.e. after this adopt — records the observed size on
+  // top, so nothing observed is lost.
   function adopt(raw, initial) {
     var result = Logic.parseState(raw)
     if (!result.ok) {
@@ -134,8 +118,7 @@ Item {
       return
     }
     if (_dirty && !initial) return
-    var next = Logic.clampToScreen(result.state, screenW, screenH)
-    if (JSON.stringify(next) !== JSON.stringify(state)) state = next
+    if (!Logic.sameState(result.state, state)) state = result.state
     if (initial) _dirty = false
   }
 
@@ -170,17 +153,22 @@ Item {
     atomicWrites: true
     printErrors: false
     onLoaded: {
-      root._loaded = true
       var initial = root._firstRead
       root._firstRead = false
       root.adopt(text(), initial)
+      // Flipped after the adopt: the view's re-sync rides loadedChanged,
+      // so it must see the adopted document — otherwise it records the
+      // observed size underneath it and the adopt discards it (spec:
+      // observed size is still recorded).
+      root._loaded = true
     }
     onLoadFailed: {
       // Absent or unreadable file: safe defaults, nothing written until
-      // the user actually changes something.
-      root._loaded = true
+      // the user actually changes something. State settles before the
+      // flip, for the same reason as onLoaded.
       root._firstRead = false
       if (!root._dirty) root.state = Logic.defaults()
+      root._loaded = true
     }
     onFileChanged: {
       // Skip the reload for our own writes; the next watch event is then

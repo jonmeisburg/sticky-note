@@ -10,8 +10,8 @@
 //
 // Only bold is modeled here. Where rendered text could have come from
 // anything beyond bold markers, docToSource refuses to guess (returns
-// null) and callers fall back — a misplaced caret is fine, a misplaced
-// edit is not.
+// null) and tapCaret applies the fallback — the caret lands at the end
+// of the source: a misplaced caret is fine, a misplaced edit is not.
 
 const MARK = "**";
 
@@ -153,4 +153,13 @@ export function docToSource(source, rendered, docPos) {
 
   const d = Math.max(0, Math.min(docPos, plain.length));
   return offsets[d];
+}
+
+// A tap on the rendered (idle) face lands the caret in the source.
+// docToSource owns the mapping and refuses to guess; when it refuses,
+// the caret falls to the end of the source instead — the view applies
+// this result only.
+export function tapCaret(source, rendered, docPos) {
+  const src = docToSource(source, rendered, docPos);
+  return src === null ? source.length : src;
 }

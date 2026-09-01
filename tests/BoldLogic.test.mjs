@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { toggleBold, docToSource } from "../logic/BoldLogic.mjs";
+import { toggleBold, docToSource, tapCaret } from "../logic/BoldLogic.mjs";
 
 // --- toggleBold with a selection ------------------------------------------
 
@@ -157,4 +157,26 @@ test("normalizes unicode line separators from the document", () => {
 test("unpaired markers count as literal characters in the mapping", () => {
   const source = "a ** b"; // ** with no pair: literal
   assert.equal(docToSource(source, source, 4), 4);
+});
+
+// --- tapCaret: the idle-view tap, with the fallback applied -------------
+// The view's click-to-edit calls this; it owns the decision that when the
+// map refuses, the caret lands at the end of the source.
+
+test("maps a tap on the rendered view into the source", () => {
+  const source = "aa **bold** cc";
+  const rendered = "aa bold cc";
+  assert.equal(tapCaret(source, rendered, 0), 0); // before the span
+  assert.equal(tapCaret(source, rendered, 3), 5); // inside the span
+  assert.equal(tapCaret(source, rendered, 9), 13); // after the span
+});
+
+test("falls to end-of-source when the map refuses (other markdown)", () => {
+  assert.equal(tapCaret("*italics*", "italics", 2), "*italics*".length);
+  assert.equal(tapCaret("# head", "head", 0), "# head".length);
+});
+
+test("falls to end-of-source when the rendered text is a superset", () => {
+  // the map can't explain extra rendered text, so it refuses
+  assert.equal(tapCaret("plain", "plain more", 2), "plain".length);
 });
