@@ -38,6 +38,9 @@ commit. Float it with your usual float bind to drag it anywhere.
 Disable or remove it with `omarchy plugin disable sticky-note` /
 `omarchy plugin remove sticky-note`.
 
+Requires Omarchy — no dependencies beyond the quickshell runtime it ships
+with. Licensed MIT; see [LICENSE](LICENSE).
+
 ## Development
 
 To hack on it from a working copy, symlink your checkout into the shell's
