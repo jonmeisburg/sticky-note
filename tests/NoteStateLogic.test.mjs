@@ -55,6 +55,18 @@ test("parse: structurally valid JSON with wrong-typed fields is rejected", () =>
   }
 })
 
+test("parse: an absurd-but-well-typed size is accepted — the document is a record, not a driver", () => {
+  // A note sized huge on a big monitor (3800x2400) must still load on any
+  // machine after a monitor/resolution change: the load path never rejects
+  // or clamps the recorded size, because it never applies it to the
+  // window either — the compositor owns placement and the window's
+  // native minimumSize is the only size limit (ticket 05: the note can
+  // never strand itself off-screen).
+  const result = State.parseState('{"text": "big", "x": 10, "y": 10, "width": 3800, "height": 2400}')
+  assert.ok(result.ok)
+  assert.deepEqual(result.state, { text: "big", x: 10, y: 10, width: 3800, height: 2400 })
+})
+
 test("serialize: round-trips through parse and is stable, pretty JSON", () => {
   const original = { text: "line one\nline two", x: 100, y: 200, width: 340, height: 500 }
   const raw = State.serializeState(original)

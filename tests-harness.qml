@@ -247,6 +247,46 @@ ShellRoot {
         })
       }})
 
+      // Extended-use churn (ticket 05, stability box): a burst of edits
+      // faster than the debounce, then repeated self-writes. Two things
+      // must hold under the churn —
+      //   * no data loss: the burst settles to its last edit and only the
+      //     last edit reaches disk;
+      //   * the inotify watch survives the repeated atomic writes: after
+      //     them an external edit is still adopted, so state and file
+      //     cannot silently diverge (a dead watch is the leak class this
+      //     step exists to catch — the watcher dies, the model stops
+      //     following, and the next external edit is lost).
+      enqueue({ name: "churn: an edit burst and repeated saves lose nothing, watcher survives", run: function() {
+        for (var i = 0; i < 50; i++) model.setText("burst " + i)
+        model.saveNow()
+        assertTruthy(!model.dirty, "the burst flush left the model clean")
+        wait(500, function() {
+          sh("cat '" + statePath + "'", function(out2) {
+            var parsed = Logic.parseState(out2)
+            assertEq(parsed.ok && parsed.state.text, "burst 49", "the burst settled to its last edit")
+            function churn(k) {
+              if (k < 8) {
+                model.setText("self " + k)
+                model.saveNow()
+                wait(400, function() { churn(k + 1) })
+              } else {
+                sh("printf '%s' '" + JSON.stringify({
+                  text: "churned external", x: 16, y: 0, width: 725, height: 790
+                }) + "' > '" + statePath + "'", function() {
+                  wait(1000, function() {
+                    assertEq(model.state.text, "churned external",
+                      "the watcher still follows external edits after the churn")
+                    proceed()
+                  })
+                })
+              }
+            }
+            churn(0)
+          })
+        })
+      }})
+
       // The startup race, as it happens live: a note is on disk, a fresh model
       // is pointed at it, and a save lands before the async file read
       // completes. Two contracts must hold at once:
