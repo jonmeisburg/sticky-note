@@ -203,17 +203,47 @@ ShellRoot {
       // (focus loss, Escape), the pending tail of the debounce must land
       // immediately — the last keystrokes of a session are never held
       // for the debounce window. Flushed explicitly (saveNow), the way
-      // the view's commit binding does; the read below happens well
-      // inside the 500ms window, so only the flush could have written it.
+      // the view's commit binding does. FileView.setText writes
+      // asynchronously, so the read waits for the write to land — but
+      // the wait costs the test nothing: saveNow stops the debounce
+      // before writing, so the flush is the only possible writer and no
+      // wait can let the debounce mask a broken flush.
       enqueue({ name: "a commit flush writes the pending tail immediately", run: function() {
         model.setText("flushed tail")
         model.saveNow()
         assertTruthy(!model.dirty, "the commit flush left the model clean")
-        sh("cat '" + statePath + "'", function(out2) {
-          var parsed = Logic.parseState(out2)
-          assertEq(parsed.ok && parsed.state.text, "flushed tail",
-            "the pending tail reached disk before the debounce window closed")
-          proceed()
+        wait(500, function() {
+          sh("cat '" + statePath + "'", function(out2) {
+            var parsed = Logic.parseState(out2)
+            assertEq(parsed.ok && parsed.state.text, "flushed tail",
+              "the pending tail reached disk before the debounce window closed")
+            proceed()
+          })
+        })
+      }})
+
+      // The other half of user story 10 — the reboot path: teardown
+      // (shell reload, logout) runs Component.onDestruction: saveNow(),
+      // so a tail the debounce still holds lands even when the process
+      // dies inside the debounce window. Destroying the model here IS
+      // that teardown: no explicit flush, no debounce wait first.
+      enqueue({ name: "teardown flushes a tail the debounce still holds", run: function() {
+        var m = Qt.createQmlObject("
+          import QtQuick
+          import \".\"
+          NoteStateModel {}", root)
+        m.path = statePath
+        wait(600, function() { // the first read adopted the on-disk document
+          m.setText("teardown tail")
+          m.destroy()
+          wait(500, function() {
+            sh("cat '" + statePath + "'", function(out2) {
+              var parsed = Logic.parseState(out2)
+              assertEq(parsed.ok && parsed.state.text, "teardown tail",
+                "the teardown flush wrote the tail the debounce still held")
+              proceed()
+            })
+          })
         })
       }})
 

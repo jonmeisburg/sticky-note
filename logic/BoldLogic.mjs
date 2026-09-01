@@ -86,10 +86,7 @@ function toggleSelection(source, a0, b0) {
   // mangle the inner markers.
   if (isBoldSpan(source, a, b)) {
     return {
-      text:
-        source.slice(0, a) +
-        source.slice(a + MARK.length, b - MARK.length) +
-        source.slice(b),
+      text: unwrapSpan(source, a, b),
       selStart: a,
       selEnd: b - 2 * MARK.length,
     };
@@ -111,13 +108,23 @@ function isBoldSpan(source, a, b) {
   return false;
 }
 
+// The text of `source` with the span [a, b)'s two markers dropped — the
+// content, unbolded, spliced back into the surrounding text.
+function unwrapSpan(source, a, b) {
+  return (
+    source.slice(0, a) +
+    source.slice(a + MARK.length, b - MARK.length) +
+    source.slice(b)
+  );
+}
+
 function toggleCaret(source, c) {
   // Inside a bold span — its content or its markers: unwrap it. A caret
   // sitting just after the closing markers counts too, so pressing
   // Ctrl+B right after typing a bold word unbolds it.
   for (const [a, b] of boldSpans(source)) {
     if (c >= a && c <= b) {
-      const text = source.slice(0, a) + source.slice(a + MARK.length, b - MARK.length) + source.slice(b);
+      const text = unwrapSpan(source, a, b);
       const pos =
         c < a + MARK.length ? a : c >= b - MARK.length ? b - 2 * MARK.length : c - MARK.length;
       return { text, selStart: pos, selEnd: pos };
