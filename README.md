@@ -13,26 +13,42 @@ while editing you see the raw source (`**word**`); once the note is idle,
 the markdown renders and bold words appear bold.
 
 State lives in `~/.config/sticky-note/note.json` — one human-readable JSON
-document (`text`, `x`, `y`, `width`, `height`). Text is restored exactly;
-size is restored at spawn and then follows the compositor. A corrupt file
-falls back to safe defaults and is preserved as `note.json.invalid-*`
+document holding the note's text plus its recorded size. Placement is the
+compositor's business: the document's x/y are recorded for reference but
+never applied, and when the note tiles the compositor may reshape it — the
+settled size is what gets recorded back. Text is restored exactly. A corrupt
+file falls back to safe defaults and is preserved as `note.json.invalid-*`
 rather than overwritten.
 
 ## Install
 
-The plugin runs inside the Omarchy shell and launches at login once enabled:
+On Omarchy, install straight from this repo:
+
+```bash
+omarchy plugin add https://github.com/jonmeisburg/sticky-note --enable
+```
+
+There is nothing to launch after that — the note is a *service*, not an app:
+omarchy-shell mounts it at login and the window is simply there, tiled
+alongside your windows. Click it to type; click away or press Escape to
+commit. Float it with your usual float bind to drag it anywhere.
+
+Disable or remove it with `omarchy plugin disable sticky-note` /
+`omarchy plugin remove sticky-note`.
+
+## Development
+
+To hack on it from a working copy, symlink your checkout into the shell's
+plugin directory and enable it:
 
 ```bash
 ln -s ~/Projects/sticky-note ~/.config/omarchy/plugins/sticky-note
 omarchy plugin enable sticky-note
 ```
 
-`omarchy plugin enable` adds the plugin to `plugins[]` in
+(`omarchy plugin enable` adds the plugin to `plugins[]` in
 `~/.config/omarchy/shell.json`; the shell loads enabled services at every
-startup, which is the login autostart path. Disable with
-`omarchy plugin disable sticky-note`.
-
-## Development
+startup, which is the login autostart path.)
 
 Two iteration loops, by how live you need the result:
 
